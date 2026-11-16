@@ -22,6 +22,11 @@ On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RE
 - A long click on a channel at the top level mutes or unmutes it.
 - When the left column is empty, it shows the current BPM, written vertically.
 
+### Probability (PROB)
+PROB is the setting before XOX. Each channel shows its probability as a donut that fills clockwise from the top, with the number in the hole. A full donut is 100 %. The selected channel has a thin outer ring; press and turn to change channel.
+
+![PROB: probability donuts, channel 6 selected](images/prob.png)
+
 ### XOX (step programming)
 XOX is the last setting of the channel menu.
 
@@ -85,8 +90,8 @@ All presets follow the same channel order, so one patch works with all of them:
 | 2 | BOS | 120 | eucli | **OFFS:** the bossa nova clave (5 in 16) and the samba pattern (7 in 16) are euclidean rhythms rotated with OFFS. |
 | 3 | CUB | 100 | eucli | Traditional rhythms that are euclidean: tresillo (6 in 16, OFFS 5) and cinquillo (10 in 16, OFFS 3). |
 | 4 | DEM | 95 | XOX | Dembow, drawn step by step. |
-| 5 | CMB | 95 | XOX | Classic Colombian cumbia: kick, llamador, maracas, güiro, conga, bass. |
-| 6 | BRK | 132 | XOX | Breakbeat: kick, snare, hi-hat, open hi-hat, tom, and a pluck on channel 6 at 68 % probability. |
+| 5 | CMB | 95 | XOX + eucli | Classic Colombian cumbia: kick, llamador and cowbell in eucli mode; maracas, güiro and bass drawn in XOX. |
+| 6 | BRK | 132 | XOX + eucli | Breakbeat: kick, snare, hi-hat and open hi-hat drawn in XOX; a tom (5 hits, 87 %) and a pluck (9 hits, 60 %) in eucli mode with probability, so both modes work together. |
 | 7 | TER | 90 | XOX | **LIMI:** all channels in 12 steps, a triple pulse with a bembé bell (7 in 12) on channel 5. |
 | 8 | POL | 120 | XOX | Polymeter: each channel has a different length (16, 7, 11, 9, 5, 13 steps), and channels 3 to 6 have probability, so the patterns drift apart and change over time. |
 | 9 | DIV | 120 | eucli | Clock divider, a utility: 16, 8, 4, 2 and 1 hits, and channel 6 with 4 hits on the offbeats. |
@@ -120,6 +125,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Display**
 - EUCLID + XOX splash.
+- PROB shows each channel's probability as a donut, with a ring on the selected channel.
 - Step and hit numbers at the center of the rings.
 - BPM in the empty left column.
 - Numbers drawn with the JARA pixel font (`JaraNumeros.h`, digits only). Text and menu letters use the system font.
@@ -160,7 +166,7 @@ arduino-cli compile -b arduino:avr:nano --build-property "build.extra_flags=-DSS
 arduino-cli upload  -b arduino:avr:nano -p <port> EucliXOX
 ```
 
-Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30354 of the 30720 bytes available with the old bootloader.
+Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30636 of the 30720 bytes available with the old bootloader.
 
 ## License
 

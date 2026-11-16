@@ -38,13 +38,13 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
-#include "JaraNumeros.h"  // dígitos de JARA, la tipografía de JKO (pixel, 8 px), formato Adafruit GFX
+#include "JaraNumeros.h"  // JARA digits, JKO's pixel font (8 px), Adafruit GFX format
 
-void textAt(int x, int y, byte size = 1);  // ver initDisplay()
+void textAt(int x, int y, byte size = 1);  // see initDisplay()
 void numAt(int x, int y, byte size = 1);
 
 // Configuration flags
-//#define ENCODER_REVERSED  // descomentar (o compilar con -DENCODER_REVERSED) si el encoder gira al revés
+//#define ENCODER_REVERSED  // uncomment (or compile with -DENCODER_REVERSED) if the encoder turns the wrong way
 //#define ROTATE_PANEL
 //#define DISABLE_BOOT_LOGO
 
@@ -127,12 +127,12 @@ enum Setting {
   SETTING_RESET,
   SETTING_RANDOM,
   SETTING_PROB,
-  SETTING_XOX,  // Modo XOX: girar mueve el cursor, clic enciende/apaga el paso, clic largo sale
+  SETTING_XOX,  // XOX mode: turn moves the cursor, click toggles the step, long click leaves
   SETTING_LAST
 };
 
 // For debug / UI
-// EUCLID11: formato compacto de memorias con patrón XOX. Las memorias EUCLID10 se convierten al encender.
+// EUCLID11: compact slot format with XOX patterns. EUCLID10 slots are converted at power-up.
 #define FIRMWARE_MAGIC "EUCLID11"
 #define LEGACY_MAGIC "EUCLID10"
 #define FIRMWARE_MAGIC_ADDRESS 0  // Store firmware magic (read with debug fw!)
@@ -146,11 +146,11 @@ enum Setting {
 #define EEPROM_START_ADDRESS 20
 #define CONFIG_SIZE (sizeof(StoredConfig))
 #define LAST_USED_SLOT_ADDRESS (EEPROM_START_ADDRESS + NUM_MEMORY_SLOTS * CONFIG_SIZE)
-// Memoria temporal: el último estado se guarda solo, unos segundos después del último cambio.
-// Ocupa una marca (1 byte) + StoredConfig + byte de verificación.
+// Autosaved working state: the last state is saved a few seconds after the last change.
+// Layout: a mark (1 byte) + StoredConfig + a checksum byte.
 #define AUTOSAVE_ADDRESS (LAST_USED_SLOT_ADDRESS + 2)
 #define AUTOSAVE_MARK 0xA5
-#define AUTOSAVE_DELAY_MS 10000UL  // espera sin tocar el encoder antes de guardar
+#define AUTOSAVE_DELAY_MS 10000UL  // time without encoder actions before saving
 
 // Timing
 bool trg_in = false, old_trg_in = false, rst_in = false, old_rst_in = false;
@@ -165,13 +165,13 @@ byte selected_slot = 0;
 bool disp_refresh = true;
 bool force_refresh = true;
 unsigned long last_refresh = 0;
-// Corte general: mantener apretado el encoder sobre M (fuera del modo mute).
-// 0,4 s mutea todo (o restaura la mezcla si ya había corte), 2 s parpadean todos, 4 s desmutea todo.
-byte cutMask = 0;    // canales que muteó el corte (0 = no hay corte activo)
-byte blinkMask = 0;  // stickers que parpadean
+// Global cut: hold the encoder on M (outside mute mode).
+// 0.4 s mutes all (or restores the previous mix if a cut is active), 2 s blinks all, 4 s unmutes all.
+byte cutMask = 0;    // channels muted by the cut (0 = no active cut)
+byte blinkMask = 0;  // stickers that blink
 byte holdStage = 0;
 unsigned long cutTime = 0;
-// Modo mute del menú M: girar elige canal (marco), clic mutea/desmutea, clic largo sale
+// Mute mode on M: turn chooses a channel, click mutes/unmutes, long click leaves
 bool muteMode = false;
 byte muteCursor = 0;
 bool internalClock = false;
@@ -186,7 +186,7 @@ int externalBPM = 0;
 const byte graph_x[6] = { 0, 40, 80, 15, 55, 95 }, graph_y[6] = { 0, 0, 0, 32, 32, 32 };
 
 
-// En PROGMEM para dejar más RAM a la pila (se leen con pgm_read_byte)
+// In PROGMEM to leave more RAM for the stack (read with pgm_read_byte)
 const byte x16[16] PROGMEM = { 15, 21, 26, 29, 30, 29, 26, 21, 15, 9, 4, 1, 0, 1, 4, 9 }, y16[16] PROGMEM = { 0, 1, 4, 9, 15, 21, 26, 29, 30, 29, 26, 21, 15, 9, 4, 1 };
 
 //Sequence variables
@@ -195,10 +195,10 @@ constexpr uint8_t MAX_STEPS = 16;
 constexpr uint8_t MAX_PATTERNS = 17;
 const int MIN_REFRESH_DURATION = 375;  // 250;  // 125;  // Used by fast inputs like encoder rotation to throttle the display refresh. (3 steps)
 unsigned long gate_timer = 0;
-#define LED_FLASH_MS 5  // destello de los LEDs (canales y clock); más corto se percibe más tenue (original: 30)
-#define LONG_CLICK_MS 375  // duración del clic largo
-#define TRIG_MS 25      // duración de los triggers de salida en el código. La pantalla se redibuja después
-                        // del destello y tarda ~25 ms, así que en la práctica duran ~30 ms, como antes.
+#define LED_FLASH_MS 5  // LED flash (channels and clock); shorter looks dimmer (original: 30)
+#define LONG_CLICK_MS 375  // long click duration
+#define TRIG_MS 25      // output trigger length in code. The screen redraws after the LED flash and takes
+                        // ~25 ms, so in practice triggers last ~30 ms, as before.
 unsigned long last_clock_input = 0;
 unsigned long internalClockTimer = 0;
 
@@ -221,7 +221,7 @@ const static byte euc16[MAX_PATTERNS][MAX_STEPS] PROGMEM = {  //euclidian rythm
   { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0 },
   { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
 };
-uint16_t offset_buf[MAX_CHANNELS];  // pasos que suenan por canal (bit j = paso j), ya con OFFS aplicado. 12 bytes de RAM en vez de 96.
+uint16_t offset_buf[MAX_CHANNELS];  // steps that sound per channel (bit j = step j), with OFFS applied. 12 bytes of RAM instead of 96.
 #define stepOn(ch, j) ((offset_buf[ch] >> ((j) & 15)) & 1)
 
 // random assign
@@ -246,7 +246,7 @@ EncoderButton encoder(ENCODER_PIN1, ENCODER_PIN2, ENCODER_SW_PIN);
 EncoderButton encoder(ENCODER_PIN2, ENCODER_PIN1, ENCODER_SW_PIN);
 #endif
 
-// Estado del ritmo que suena (en RAM)
+// State of the rhythm that is playing (in RAM)
 
 struct SlotConfiguration {
   byte hits[MAX_CHANNELS];         // Number of hits per pattern in each channel
@@ -261,13 +261,13 @@ struct SlotConfiguration {
 SlotConfiguration currentConfig;
 byte lastUsedSlot = 0;
 
-// Patrón XOX por canal: bit s = paso s encendido (antes de aplicar OFFS).
-// Bit i de xoxMask = el canal i toca su patrón XOX en vez del euclidiano.
+// XOX pattern per channel: bit s = step s on (before OFFS is applied).
+// Bit i of xoxMask = channel i plays its XOX pattern instead of the euclidean one.
 uint16_t xoxPattern[MAX_CHANNELS];
 byte xoxMask = 0;
 byte xoxCursor[MAX_CHANNELS];
 
-// Formato compacto en EEPROM (41 bytes).
+// Compact EEPROM format (41 bytes).
 struct StoredConfig {
   byte hits[MAX_CHANNELS];
   byte offset[MAX_CHANNELS];
@@ -277,10 +277,10 @@ struct StoredConfig {
   byte xoxMask;
   uint16_t xox[MAX_CHANNELS];
   int tempo;
-  byte internalClock;  // 0 externo, 1 interno, 2 = no cambia el reloj al cargar (presets)
+  byte internalClock;  // 0 external, 1 internal, 2 = loading does not change the clock (presets)
 };
 
-// Formato EUCLID10 (46 bytes por memoria), solo para convertir memorias antiguas.
+// EUCLID10 format (46 bytes per slot), only used to convert old slots.
 struct LegacySlot {
   byte hits[MAX_CHANNELS];
   byte offset[MAX_CHANNELS];
@@ -297,50 +297,50 @@ struct LegacySlot {
 #define LEGACY_SLOT_SIZE (sizeof(LegacySlot))
 #define LEGACY_LAST_USED_SLOT_ADDRESS (EEPROM_START_ADDRESS + NUM_MEMORY_SLOTS * LEGACY_SLOT_SIZE)
 
-// Estado del guardado automático
+// Autosave state
 unsigned long lastChangeTime = 0;
 bool autosavePending = false;
 bool autosaveWriting = false;
 byte autosaveIndex = 0;
 
-// Nombres de 3 letras por memoria y marca de presets escritos, después de la memoria temporal
+// 3-letter slot names and the presets-written mark, after the autosave area
 #define NAMES_ADDRESS (AUTOSAVE_ADDRESS + sizeof(StoredConfig) + 2)
 #define PRESETS_FLAG_ADDRESS (NAMES_ADDRESS + NUM_MEMORY_SLOTS * 3)
 #define PRESETS_MARK 0x5D
 const char NAME_CHARS[] PROGMEM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
 #define NUM_NAME_CHARS 38
-byte nameEdit = 0;  // 0 = no se está nombrando; 1..3 = letra que se edita
+byte nameEdit = 0;  // 0 = not naming; 1..3 = letter being edited
 char nameBuf[3];
 
-// Presets que se escriben una vez en las memorias 1 a 9 (solo si están con el ritmo inicial o con el preset
-// de fábrica viejo sin cambios). Van de lo simple a lo complejo: EUC, BOS y CUB en modo eucli (16 pasos,
-// enseñan HITS y OFFS); DEM, CMB y BRK dibujados en XOX; TER (12 pasos) y POL (largos distintos) enseñan LIMI.
-// Orden de canales: 1 bombo, 2 caja/clap, 3 hat cerrado, 4 hat abierto/platillo, 5 percusión, 6 percusión/acento.
-// Generados con dev/presets/gen_presets.py.
+// Presets written once into slots 1 to 9 (only where the slot holds the initial rhythm or the unchanged
+// old factory preset). From simple to complex: EUC, BOS and CUB in eucli mode (16 steps, they show HITS
+// and OFFS); DEM, CMB and BRK drawn in XOX (CMB and BRK mix in eucli channels); TER (12 steps) and POL
+// (different lengths) show LIMI.
+// Channel order: 1 kick, 2 snare/clap, 3 closed hat, 4 open hat/cymbal, 5 percussion, 6 percussion/accent.
 const StoredConfig presets[] PROGMEM = {
-  // EUC: HITS: 2 a 7 golpes, figuras casi regulares
+  // EUC: HITS: 2 to 7 hits, almost regular shapes
   { { 2, 3, 4, 5, 6, 7 }, { 0, 0, 0, 0, 0, 0 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x00, { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, 120, 2 },
-  // BOS: OFFS: clave de bossa (5) y samba (7) rotadas
+  // BOS: OFFS: bossa clave (5) and samba (7), rotated
   { { 4, 5, 8, 4, 7, 9 }, { 0, 12, 0, 2, 0, 10 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x00, { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, 120, 2 },
-  // CUB: tresillo (6 en 16) y cinquillo (10 en 16)
+  // CUB: tresillo (6 in 16) and cinquillo (10 in 16)
   { { 4, 6, 8, 4, 10, 2 }, { 0, 5, 0, 2, 3, 0 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x00, { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, 100, 2 },
   // DEM: dembow
   { { 4, 4, 8, 4, 6, 4 }, { 0, 0, 0, 0, 0, 0 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x3F, { 0x1111, 0x4848, 0x5555, 0x4444, 0x4949, 0x4141 }, 95, 2 },
-  // CMB: cumbia colombiana clásica
-  { { 2, 4, 8, 12, 3, 3 }, { 0, 0, 0, 0, 0, 0 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x3F, { 0x0101, 0x4444, 0x5555, 0xDDDD, 0x40C0, 0x0181 }, 95, 2 },
-  // BRK: breakbeat de JKO
-  { { 2, 2, 3, 4, 1, 1 }, { 0, 10, 0, 10, 11, 4 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 68 }, 0, 0x1E, { 0, 0x0080, 0x05A5, 0x1511, 0x0001, 0x81C2 }, 132, 2 },
-  // TER: 12 pasos, pulso ternario con bembé
+  // CMB: classic Colombian cumbia (by JKO), channel 5 is a cowbell
+  { { 4, 4, 8, 12, 4, 3 }, { 0, 14, 0, 0, 0, 6 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x2C, { 0x0101, 0x4444, 0x5555, 0xDDDD, 0x40C0, 0x0181 }, 95, 2 },
+  // BRK: breakbeat by JKO
+  { { 4, 2, 3, 4, 5, 9 }, { 0, 10, 0, 10, 11, 4 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 87, 60 }, 0, 0x0F, { 0x0103, 0x8100, 0x05A5, 0x1D11, 0x4208, 0x0241 }, 132, 2 },
+  // TER: 12 steps, triple pulse with a bembé bell
   { { 4, 2, 12, 4, 7, 2 }, { 0, 0, 0, 0, 0, 0 }, { 12, 12, 12, 12, 12, 12 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x3F, { 0x0249, 0x0208, 0x0FFF, 0x0924, 0x0AD5, 0x0041 }, 90, 2 },
-  // POL: polimetría con probabilidad
+  // POL: polymeter with probability
   { { 4, 3, 5, 4, 2, 5 }, { 0, 0, 0, 0, 0, 0 }, { 16, 7, 11, 9, 5, 13 }, { 100, 100, 80, 60, 70, 50 }, 0, 0x3F, { 0x1111, 0x0029, 0x02A9, 0x00A9, 0x0009, 0x0949 }, 120, 2 },
-  // DIV: divisor de clock (utilidad)
+  // DIV: clock divider (utility)
   { { 16, 8, 4, 2, 1, 4 }, { 0, 0, 0, 0, 0, 2 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0, { 0 }, 120, 2 },
 };
 const char presetNames[] PROGMEM = "EUCBOSCUBDEMCMBBRKTERPOLDIV";
 #define NUM_PRESETS (sizeof(presets) / sizeof(StoredConfig))
 
-// Presets de fábrica del Euclid anterior, que guardaba en las memorias 1 a 9 (golpes, desplazamientos, largos)
+// Factory presets of the original Euclid, stored in slots 1 to 9 (hits, offsets, lengths)
 const byte oldFactory[9][18] PROGMEM = {
   { 4, 4, 7, 4, 4, 4, 0, 2, 3, 2, 1, 0, 16, 16, 12, 8, 16, 16 },        // Techno
   { 4, 4, 4, 4, 4, 4, 0, 1, 0, 1, 0, 1, 16, 16, 16, 16, 16, 16 },       // Funk
@@ -354,7 +354,7 @@ const byte oldFactory[9][18] PROGMEM = {
 };
 byte autosaveCheck = 0;
 
-// Splash de inicio, EUCLID + XOX, 80x36px, 360 bytes. Generado desde el dibujo de JKO (lienzo de 128x64)
+// Boot splash, EUCLID + XOX, 80x36 px, 360 bytes. Generated from JKO's drawing (128x64 canvas)
 const unsigned char Splash_Logo [] PROGMEM = {
   0x01, 0xc2, 0x02, 0x01, 0xc0, 0x70, 0x03, 0xfe, 0x1e, 0x00,
   0x03, 0x45, 0x05, 0x03, 0x60, 0x58, 0x02, 0x03, 0x13, 0x00,
@@ -396,7 +396,7 @@ const unsigned char Splash_Logo [] PROGMEM = {
 const byte logoWidth = 80;
 const byte logoHeight = 36;
 
-// Splash de inicio: la imagen va en la misma posición que en el lienzo original de 128x64
+// Boot splash: the image keeps its position from the original 128x64 canvas
 void drawAnimation() {
   display.clearDisplay();
   display.drawBitmap(23, 15, Splash_Logo, logoWidth, logoHeight, WHITE);
@@ -425,14 +425,14 @@ void handleClockInterrupt() {
   clockTriggerFlag = true;
   last_clock_input = millis();
   
-  // BPM del clock externo (pulsos = semicorcheas). Se mide en microsegundos, con un promedio
-  // móvil de ~4 pulsos y redondeo, para que un clock estable muestre un número estable.
-  // (El original medía en ms enteros y truncaba: a 70 BPM alternaba 69 y 70.)
+  // External clock BPM (pulses = 16th notes). Measured in microseconds with a moving average
+  // of ~4 pulses and rounding, so a steady clock shows a steady number.
+  // (The original measured whole ms and truncated: at 70 BPM it alternated 69 and 70.)
   static unsigned long lastPulseUs = 0;
-  static unsigned long avgUs = 0;  // intervalo promedio entre pulsos, en µs
+  static unsigned long avgUs = 0;  // average interval between pulses, in µs
   unsigned long now = micros();
   unsigned long interval = now - lastPulseUs;
-  if (lastPulseUs && interval < 2000000UL) {  // ignora el primer pulso y las pausas de más de 2 s
+  if (lastPulseUs && interval < 2000000UL) {  // ignore the first pulse and gaps longer than 2 s
     avgUs = avgUs ? (avgUs * 3 + interval) / 4 : interval;
     externalBPM = (15000000UL + avgUs / 2) / avgUs;  // 60 s / 4 semicorcheas = 15.000.000 µs
     if (externalBPM > 360) externalBPM = 360;        // Limit BPM to avoid high speed issues
@@ -517,7 +517,7 @@ void Random_change(bool includeMute, bool allChannels, byte select_ch = 0) {
 
     uint8_t random_value = random(1, MAX_RANDOM);
     if (pgm_read_byte(&hit_occ[k]) >= random_value) {
-      xoxMask &= ~(1 << k);  // cambiar HITS devuelve el canal a eucli
+      xoxMask &= ~(1 << k);  // changing HITS returns the channel to eucli
       currentConfig.hits[k] = random(pgm_read_byte(&hit_rng_min[k]), pgm_read_byte(&hit_rng_max[k]) + 1);
     }
     if (pgm_read_byte(&off_occ[k]) >= random_value) {
@@ -561,7 +561,7 @@ void setup() {
   }
   selected_slot = lastUsedSlot;
 
-  // Vuelve lo último que sonó (memoria temporal). Si no hay una válida, carga la última memoria.
+  // Restore what was playing (autosave). Without a valid one, load the last used slot.
   if (!loadAutosave()) {
     loadFromEEPROM(lastUsedSlot);
   }
@@ -637,7 +637,7 @@ void loop() {
     }
   }
 
-  if (gate_timer + TRIG_MS <= millis()) {  // apaga los triggers de salida
+  if (gate_timer + TRIG_MS <= millis()) {  // turn the output triggers off
     OUTPUT1::setOutput(0);
     OUTPUT2::setOutput(0);
     OUTPUT3::setOutput(0);
@@ -645,7 +645,7 @@ void loop() {
     OUTPUT5::setOutput(0);
     OUTPUT6::setOutput(0);
   }
-  if (gate_timer + LED_FLASH_MS <= millis()) {  // apaga los LEDs de canal y de clock
+  if (gate_timer + LED_FLASH_MS <= millis()) {  // turn the channel and clock LEDs off
     CLK_LED::setOutput(0);
     LED1::setOutput(0);
     LED2::setOutput(0);
@@ -655,8 +655,8 @@ void loop() {
     LED6::setOutput(0);
   }
 
-  // En XOX la pantalla se refresca cuando cambia la fase del parpadeo del cursor
-  // (y mientras parpadean stickers del corte general, más rápido)
+  // In XOX the screen refreshes when the cursor blink phase changes
+  // (and faster while global cut stickers blink)
   if (selected_setting == SETTING_XOX || blinkMask) {
     static bool blinkPhase = false;
     bool phase = millis() & (blinkMask ? 128 : 512);
@@ -666,14 +666,14 @@ void loop() {
     }
   }
 
-  corteGeneral();
-  if (showOverlay && encoder.isPressed()) disp_refresh = true;  // línea del clic largo en S y L
+  globalCut();
+  if (showOverlay && encoder.isPressed()) disp_refresh = true;  // long click line in S and L
 
-  // La pantalla tarda ~25 ms en redibujarse y en ese tiempo no se puede apagar nada:
-  // espera a que terminen los destellos de los LEDs para que duren LED_FLASH_MS de verdad.
+  // Redrawing the screen takes ~25 ms and nothing can be switched off meanwhile:
+  // wait until the LED flashes end, so they really last LED_FLASH_MS.
   if (millis() - gate_timer >= LED_FLASH_MS) OLED_display();
 
-  autoguardar();  // memoria temporal
+  autosaveStep();  // autosave
 }
 
 void setupEncoder() {
@@ -708,15 +708,15 @@ void initIO() {
   CLK_LED::setOutputLow();  // CLK LED
 }
 
-// Textos con la tipografía de sistema (x, y = esquina superior izquierda).
+// Text in the system font (x, y = top left corner).
 void textAt(int x, int y, byte size) {
   display.setFont(NULL);
   display.setTextSize(size);
   display.setCursor(x, y);
 }
 
-// Números con JARA. JARA se dibuja desde la línea base: se suma la altura de los dígitos
-// (6 px por tamaño) para que x, y sigan siendo la esquina superior izquierda.
+// Numbers in JARA. JARA is drawn from the baseline: the digit height (6 px per size)
+// is added so x, y stay the top left corner.
 void numAt(int x, int y, byte size) {
   display.setFont(&JaraNumeros);
   display.setTextSize(size);
@@ -784,14 +784,14 @@ bool isClockRunning() {
 }
 
 void onEncoderClicked(EncoderButton &eb) {
-  marcarCambio();
+  markChange();
   if (!isClockRunning()) {
     force_refresh = true;
   }
   disp_refresh = true;  // just in case
 
   if (nameEdit) {
-    if (++nameEdit > 3) finishName();  // clic: siguiente letra; después de la tercera, cierra
+    if (++nameEdit > 3) finishName();  // click: next letter; after the third, close
   } else if (showOverlay) {
     onOverlayTimeout(eb);  // Handle click to exit overlay
   } else {
@@ -804,7 +804,7 @@ void onEncoderClicked(EncoderButton &eb) {
       case MENU_CH_5:
       case MENU_CH_6:
         if (selected_setting == SETTING_XOX) {
-          toggleXoxStep(selected_menu);  // en XOX el clic enciende/apaga el paso bajo el cursor
+          toggleXoxStep(selected_menu);  // in XOX a click toggles the step under the cursor
         } else {
           // Click should only advance selected setting when a channel top menu is selected.
           selected_setting = static_cast<Setting>((selected_setting + 1) % SETTING_LAST);
@@ -816,10 +816,10 @@ void onEncoderClicked(EncoderButton &eb) {
         break;
       case MENU_ALL_MUTE:
         if (!muteMode) {
-          muteMode = true;   // entra al modo mute
+          muteMode = true;   // enter mute mode
         } else {
           currentConfig.mute[muteCursor] = !currentConfig.mute[muteCursor];
-          cutMask = 0;       // la mezcla guardada por el corte ya no corresponde
+          cutMask = 0;       // the mix stored by the cut no longer applies
         }
         break;
       case MENU_RAND:
@@ -839,7 +839,7 @@ void onEncoderClicked(EncoderButton &eb) {
 
 // now toggles the mute status of the selected channel when in SETTING_TOP_MENU
 void onEncoderLongClicked(EncoderButton &eb) {
-  marcarCambio();
+  markChange();
   if (!isClockRunning()) {
     force_refresh = true;
   }
@@ -847,7 +847,7 @@ void onEncoderLongClicked(EncoderButton &eb) {
 
   // If we're in the parameter settings (Hits, Offset, Limit, etc.) for one of the channels
   if (selected_menu <= MENU_CH_6 && selected_setting == SETTING_XOX) {
-    selected_setting = SETTING_TOP_MENU;  // clic largo sale de XOX
+    selected_setting = SETTING_TOP_MENU;  // long click leaves XOX
   } else if (selected_menu <= MENU_CH_6 && selected_setting != SETTING_TOP_MENU) {
     // Decrement the selected menu to allow back navigation
     selected_setting = static_cast<Setting>((selected_setting - 1 + SETTING_LAST) % SETTING_LAST);
@@ -856,12 +856,12 @@ void onEncoderLongClicked(EncoderButton &eb) {
     switch (selected_menu) {
       case MENU_SAVE:
         if (nameEdit) {
-          finishName();  // clic largo mientras se nombra: cierra
+          finishName();  // long click while naming: close
         } else {
           bool used = slotUsed(selected_slot);
           saveToEEPROM(selected_slot);
           for (byte k = 0; k < 3; k++) nameBuf[k] = used ? nameChar(selected_slot, k) : '-';
-          nameEdit = 1;  // después de guardar se nombra la memoria
+          nameEdit = 1;  // after saving, the slot is named
         }
         break;
       case MENU_LOAD:
@@ -870,11 +870,11 @@ void onEncoderLongClicked(EncoderButton &eb) {
         break;
     }
   } else if (selected_menu == MENU_ALL_MUTE) {
-    if (muteMode) {  // sale del modo mute y salta al canal 1 (el siguiente al girar)
+    if (muteMode) {  // leave mute mode and jump to channel 1 (the next item when turning)
       muteMode = false;
       selected_menu = MENU_CH_1;
     }
-    // fuera del modo, el corte general se maneja mientras se mantiene apretado (en loop)
+    // outside the mode, the global cut is handled while held (in loop)
   } else if (selected_menu == MENU_TEMPO) {
     internalClock = !internalClock;  // Toggle the internal clock state
     showOverlay = true;              // Show overlay to indicate clock state change
@@ -891,10 +891,10 @@ void onEncoderLongClicked(EncoderButton &eb) {
 void onEncoderRotation(EncoderButton &eb) {
   int increment = encoder.increment();  // Get the incremental change (could be negative, positive, or zero)
   if (increment == 0) return;
-  marcarCambio();
+  markChange();
   disp_refresh = true;
 
-  if (muteMode) {  // en el modo mute, girar mueve el marco de a un canal
+  if (muteMode) {  // in mute mode, turning moves the cursor one channel
     muteCursor = (muteCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
     return;
   }
@@ -928,7 +928,7 @@ void onEncoderRotation(EncoderButton &eb) {
 
       case MENU_SAVE:
       case MENU_LOAD:
-        if (nameEdit) {  // girar cambia la letra
+        if (nameEdit) {  // turning changes the letter
           char *c = &nameBuf[nameEdit - 1];
           byte i = (const char *)strchr_P(NAME_CHARS, *c) - NAME_CHARS;
           *c = pgm_read_byte(&NAME_CHARS[(i + increment + NUM_NAME_CHARS) % NUM_NAME_CHARS]);
@@ -947,7 +947,7 @@ void onEncoderRotation(EncoderButton &eb) {
 void onEncoderPressedRotation(EncoderButton &eb) {
   int increment = encoder.increment();  // Get the incremental change (could be negative, positive, or zero)
   if (increment == 0) return;
-  marcarCambio();
+  markChange();
   disp_refresh = true;
 
   int acceleratedIncrement = increment * increment;  // Squaring the increment for quicker adjustments
@@ -985,8 +985,8 @@ void onEncoderPressedRotation(EncoderButton &eb) {
       break;
 
     case MENU_RANDOM_ADVANCE:
-      // Largo del ciclo: índice 0..5 de bar_max = 2, 4, 6, 8, 12, 16 compases.
-      // (El original iba de 1 a 6: nunca llegaba a 2 compases y en 6 leía fuera de la tabla.)
+      // Cycle length: index 0..5 of bar_max = 2, 4, 6, 8, 12, 16 bars.
+      // (The original went from 1 to 6: it never reached 2 bars and at 6 read outside the table.)
       bar_select = (bar_select + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
       break;
 
@@ -1010,22 +1010,22 @@ bool isXox(byte ch) {
   return xoxMask & (1 << ch);
 }
 
-// Posición del cursor dentro del largo (LIMI) del canal
+// Cursor position within the channel length (LIMI)
 byte xoxPos(byte ch) {
   byte len = currentConfig.limit[ch];
   if (len == 0 || len > MAX_STEPS) len = MAX_STEPS;
   return xoxCursor[ch] % len;
 }
 
-// Vuelve a eucli. HITS parte del número de golpes que tenía el dibujo.
+// Back to eucli. HITS starts from the number of steps the drawing had.
 void leaveXox(byte ch) {
   if (!isXox(ch)) return;
   xoxMask &= ~(1 << ch);
   currentConfig.hits[ch] = __builtin_popcount(xoxPattern[ch]);
 }
 
-// Enciende o apaga el paso bajo el cursor. La primera vez el canal pasa a XOX
-// y el dibujo parte del ritmo euclidiano que está sonando.
+// Toggle the step under the cursor. The first time, the channel switches to XOX
+// and the drawing starts from the euclidean rhythm that is playing.
 void toggleXoxStep(byte ch) {
   if (!isXox(ch)) {
     uint16_t p = 0;
@@ -1035,11 +1035,11 @@ void toggleXoxStep(byte ch) {
     xoxPattern[ch] = p;
     xoxMask |= 1 << ch;
   }
-  // El cursor recorre los pasos tal como suenan; OFFS gira el dibujo.
+  // The cursor moves over the steps as they sound; OFFS rotates the drawing.
   xoxPattern[ch] ^= 1u << ((xoxPos(ch) + currentConfig.offset[ch]) % MAX_STEPS);
 }
 
-//------------------- Guardado automático ---------------------
+//------------------------- Autosave -------------------------
 
 byte checksum8(const byte *p, byte n) {
   byte c = 0x5A;
@@ -1047,18 +1047,18 @@ byte checksum8(const byte *p, byte n) {
   return c;
 }
 
-void marcarCambio() {
+void markChange() {
   lastChangeTime = millis();
   autosavePending = true;
-  autosaveWriting = false;  // si estaba escribiendo, empieza de nuevo después de la espera
+  autosaveWriting = false;  // if it was writing, start again after the delay
 }
 
-// Se llama en cada vuelta de loop(). Escribe un byte por vuelta y solo si la EEPROM está libre,
-// así el ritmo no se detiene. EEPROM.update solo escribe los bytes que cambiaron.
-void autoguardar() {
+// Called on every loop() pass. Writes one byte per pass, only when the EEPROM is ready,
+// so the rhythm keeps running. EEPROM.update only writes bytes that changed.
+void autosaveStep() {
   if (!autosaveWriting) {
     if (!autosavePending || millis() - lastChangeTime < AUTOSAVE_DELAY_MS) return;
-    autosaveCheck = 0x5A;  // checksum8 se va calculando byte a byte
+    autosaveCheck = 0x5A;  // checksum8 is computed byte by byte
     autosaveIndex = 0;
     autosavePending = false;
     autosaveWriting = true;
@@ -1067,13 +1067,13 @@ void autoguardar() {
   byte value;
   if (autosaveIndex == 0) value = AUTOSAVE_MARK;
   else if (autosaveIndex <= sizeof(StoredConfig)) {
-    // Sin búfer global (41 bytes de RAM para la pila): se empaca en cada vuelta y se toma un byte.
-    // loop() llama a autoguardar() después de dibujar, así que esta copia no se suma a la pila de la pantalla.
+    // No global buffer (41 bytes of RAM left for the stack): pack on every pass and take one byte.
+    // loop() calls autosaveStep() after drawing, so this copy does not add to the drawing stack.
     StoredConfig s;
     packConfig(s);
     value = ((const byte *)&s)[autosaveIndex - 1];
     autosaveCheck = ((autosaveCheck << 1) | (autosaveCheck >> 7)) ^ value;
-  } else value = autosaveCheck;  // el byte de verificación va al final
+  } else value = autosaveCheck;  // the checksum byte goes last
   EEPROM.update(AUTOSAVE_ADDRESS + autosaveIndex, value);
   if (++autosaveIndex > sizeof(StoredConfig) + 1) autosaveWriting = false;
 }
@@ -1087,7 +1087,7 @@ bool loadAutosave() {
   return true;
 }
 
-//------------------ Formato de memorias ----------------------
+//------------------------ Slot format ------------------------
 
 void packConfig(StoredConfig &s) {
   memcpy(s.hits, currentConfig.hits, MAX_CHANNELS);
@@ -1124,8 +1124,8 @@ void unpackConfig(const StoredConfig &s) {
   disp_refresh = true;
 }
 
-// Convierte las memorias EUCLID10 (46 bytes) al formato compacto (41 bytes).
-// Las memorias nuevas empiezan antes que las antiguas, así que cada una se lee completa antes de pisarla.
+// Convert EUCLID10 slots (46 bytes) to the compact format (41 bytes).
+// New slots start before the old ones, so each one is read completely before it is overwritten.
 void migrateLegacySlots() {
   byte last = EEPROM.read(LEGACY_LAST_USED_SLOT_ADDRESS);
   for (byte i = 0; i < NUM_MEMORY_SLOTS; i++) {
@@ -1155,7 +1155,7 @@ void handleSettingNavigation(int changeDirection) {
       selected_menu = static_cast<TopMenu>((selected_menu + changeDirection + MENU_LAST) % MENU_LAST);  // Wrap-around for channel selection
       break;
     case SETTING_HITS:                                                                                                          // Hits
-      leaveXox(selected_menu);  // cambiar HITS devuelve el canal a eucli
+      leaveXox(selected_menu);  // changing HITS returns the channel to eucli
       currentConfig.hits[selected_menu] = (currentConfig.hits[selected_menu] + changeDirection + MAX_PATTERNS) % MAX_PATTERNS;  // Ensure hits wrap properly
       break;
     case SETTING_OFFSET:
@@ -1173,7 +1173,7 @@ void handleSettingNavigation(int changeDirection) {
     case SETTING_PROB:  // Set probability
       currentConfig.probability[selected_menu] = (currentConfig.probability[selected_menu] + changeDirection + 101) % 101;
       break;
-    case SETTING_XOX: {  // girar mueve el cursor de a un paso
+    case SETTING_XOX: {  // turning moves the cursor one step
       byte len = currentConfig.limit[selected_menu];
       if (len == 0 || len > MAX_STEPS) len = MAX_STEPS;
       xoxCursor[selected_menu] = (xoxPos(selected_menu) + (changeDirection > 0 ? 1 : len - 1)) % len;
@@ -1197,8 +1197,8 @@ void loadFromEEPROM(byte slot) {
   lastUsedSlot = slot;
 }
 
-// Primer encendido sin memorias reconocibles: las 20 memorias empiezan con un ritmo básico
-// (4 golpes en 16 pasos por canal, 120 BPM, reloj externo).
+// First boot without recognizable slots: all 20 slots start with a basic rhythm
+// (4 hits in 16 steps per channel, 120 BPM, external clock).
 void defaultConfig(StoredConfig &s) {
   memset(&s, 0, sizeof(s));
   memset(s.hits, 4, MAX_CHANNELS);
@@ -1207,20 +1207,20 @@ void defaultConfig(StoredConfig &s) {
   s.tempo = 120;
 }
 
-// Una memoria cuenta como vacía si tiene exactamente el ritmo inicial.
-// Compara byte a byte desde la EEPROM, sin copiar la memoria a la pila: se llama mientras se dibuja
-// la pantalla de S y L, y dos StoredConfig en la pila alcanzaban el búfer de la pantalla
-// (volvía el cuadradito de píxeles animado abajo a la derecha).
+// A slot counts as empty when it holds exactly the initial rhythm.
+// Compares byte by byte from the EEPROM without copying the slot to the stack: it is called while the
+// S and L screens are drawn, and two StoredConfig on the stack reached the display buffer
+// (the small animated pixel square in the lower right corner came back).
 bool slotUsed(byte slot) {
   int a = EEPROM_START_ADDRESS + slot * CONFIG_SIZE;
   for (byte i = 0; i < sizeof(StoredConfig); i++) {
-    byte e = i < 6 ? 4 : i < 12 ? 0 : i < 18 ? MAX_STEPS : i < 24 ? 100 : i == 38 ? 120 : 0;  // ritmo inicial
+    byte e = i < 6 ? 4 : i < 12 ? 0 : i < 18 ? MAX_STEPS : i < 24 ? 100 : i == 38 ? 120 : 0;  // initial rhythm
     if (EEPROM.read(a + i) != e) return true;
   }
   return false;
 }
 
-// La memoria tiene el preset de fábrica viejo de esa posición, sin cambios (viene del firmware anterior)
+// The slot holds the unchanged old factory preset for its position (from the previous firmware)
 bool isOldFactory(byte slot) {
   StoredConfig s;
   byte ref[18];
@@ -1231,11 +1231,11 @@ bool isOldFactory(byte slot) {
   return !s.muteMask && !s.xoxMask && !memcmp(&s, ref, 18);
 }
 
-// Escribe los presets una sola vez, sin pisar memorias que tengan algo propio
-// (sí reemplaza el ritmo inicial y los presets de fábrica viejos sin cambios)
+// Write the presets once, without overwriting slots with the user's own rhythms
+// (the initial rhythm and unchanged old factory presets are replaced)
 void writePresets() {
   if (EEPROM.read(PRESETS_FLAG_ADDRESS) == PRESETS_MARK) return;
-  // primera vez: la zona de nombres puede tener restos del formato anterior; todos quedan en guion
+  // first time: the name area may hold leftovers of the old format; all names become dashes
   for (byte k = 0; k < NUM_MEMORY_SLOTS * 3; k++) EEPROM.update(NAMES_ADDRESS + k, '-');
   for (byte i = 0; i < NUM_PRESETS; i++) {
     if (slotUsed(i) && !isOldFactory(i)) continue;
@@ -1247,7 +1247,7 @@ void writePresets() {
   EEPROM.update(PRESETS_FLAG_ADDRESS, PRESETS_MARK);
 }
 
-// Letra de un nombre guardado; lo que no está en NAME_CHARS (EEPROM sin escribir) se ve como guion
+// Letter of a stored name; anything outside NAME_CHARS (unwritten EEPROM) shows as a dash
 char nameChar(byte slot, byte k) {
   char c = EEPROM.read(NAMES_ADDRESS + slot * 3 + k);
   return strchr_P(NAME_CHARS, c) && c ? c : '-';
@@ -1279,20 +1279,20 @@ byte mutedMask() {
 
 void setMutes(byte m) {
   for (byte c = 0; c < MAX_CHANNELS; c++) currentConfig.mute[c] = (m >> c) & 1;
-  marcarCambio();
+  markChange();
   disp_refresh = true;
 }
 
-// Corte general sobre M, por tiempo apretado (el clic largo de la librería solo avisa al soltar)
-void corteGeneral() {
+// Global cut on M, by hold time (the library's long click only fires on release)
+void globalCut() {
   if (selected_menu == MENU_ALL_MUTE && !muteMode && !showOverlay && encoder.isPressed()) {
     unsigned long d = encoder.currentDuration();
     if (holdStage == 0 && d >= 400) {
-      if (cutMask) {  // ya había corte: vuelve la mezcla anterior
+      if (cutMask) {  // a cut is active: restore the previous mix
         setMutes(mutedMask() & ~cutMask);
         cutMask = 0;
         holdStage = 3;
-      } else {        // corta: mutea todo y parpadean los recién muteados
+      } else {        // cut: mute all, the newly muted ones blink
         cutMask = ~mutedMask() & 0x3F;
         blinkMask = cutMask;
         cutTime = millis();
@@ -1300,10 +1300,10 @@ void corteGeneral() {
         holdStage = 1;
       }
     } else if (holdStage == 1 && d >= 2000) {
-      blinkMask = 0x3F;  // sigue apretado: parpadean todos
+      blinkMask = 0x3F;  // still held: all blink
       holdStage = 2;
     } else if (holdStage == 2 && d >= 4000) {
-      setMutes(0);       // y a los 4 s se desmutea todo
+      setMutes(0);       // and at 4 s everything is unmuted
       cutMask = 0;
       blinkMask = 0;
       holdStage = 3;
@@ -1323,8 +1323,8 @@ void resetSeq() {
   }
 }
 
-// Textos verticales de los costados: tipografía de sistema (ancho fijo, las letras quedan alineadas).
-// El resto de la pantalla usa JARA.
+// Vertical side labels: system font (fixed width keeps the letters aligned).
+// Numbers elsewhere use JARA.
 void verticalMenu(byte x, byte y, char c1, char c2, char c3, char c4) {
   char c[4] = { c1, c2, c3, c4 };
   display.setFont(NULL);
@@ -1391,7 +1391,7 @@ void drawModeMenu(TopMenu select_ch) {
     case MENU_LOAD: leftMenu('L', 'O', 'A', 'D'); break;
     case MENU_ALL_RESET: leftMenu('R', 'S', 'E', 'T'); break;
     case MENU_ALL_MUTE:
-      if (muteMode) {  // dentro del modo mute: MUTE invertido en una franja blanca
+      if (muteMode) {  // inside mute mode: MUTE inverted on a white strip
         display.fillRect(0, 28, 7, 37, WHITE);
         display.setTextColor(BLACK);
         verticalMenu(1, 30, 'M', 'U', 'T', 'E');
@@ -1413,11 +1413,11 @@ void checkAndInitializeSettings() {
   if (strncmp(magic, FIRMWARE_MAGIC, sizeof(FIRMWARE_MAGIC)) == 0) return;
 
   if (strncmp(magic, LEGACY_MAGIC, sizeof(LEGACY_MAGIC)) == 0) {
-    migrateLegacySlots();  // memorias del firmware anterior: se convierten
+    migrateLegacySlots();  // slots from the previous firmware: convert them
   } else {
-    initializeDefaultRhythms();  // EEPROM sin formato conocido: ritmo básico en todas las memorias
+    initializeDefaultRhythms();  // EEPROM without a known format: basic rhythm in every slot
   }
-  EEPROM.update(AUTOSAVE_ADDRESS, 0);  // todavía no hay memoria temporal válida
+  EEPROM.update(AUTOSAVE_ADDRESS, 0);  // no valid autosave yet
   EEPROM.put(FIRMWARE_MAGIC_ADDRESS, FIRMWARE_MAGIC);
 }
 
@@ -1438,7 +1438,7 @@ void drawSelectionIndicator(Setting select_menu) {
   if (select_menu == SETTING_LIMIT) display.drawTriangle(12, 34, 12, 41, 7, 37, WHITE);
   else if (select_menu == SETTING_RESET) display.drawTriangle(12, 50, 12, 57, 7, 53, WHITE);
   else if (select_menu == SETTING_RANDOM) display.drawTriangle(12, 58, 12, 65, 7, 61, WHITE);
-  // PROB no tiene triángulo: caía fuera de la pantalla (fila 66 de 64)
+  // PROB has no triangle: it fell off the screen (row 66 of 64)
 }
 
 void drawStepDots(const SlotConfiguration &currentConfig) {
@@ -1496,17 +1496,17 @@ void drawMainScreen() {
     drawStepDots(currentConfig);
     drawEuclideanRhythms();
     drawXoxCursor();
-    if (muteMode) {  // cursor del modo mute
+    if (muteMode) {  // mute mode cursor
       if (currentConfig.mute[muteCursor]) {
-        display.drawCircle(graph_x[muteCursor] + 15, graph_y[muteCursor] + 15, 11, WHITE);  // anillo fino alrededor del sticker
+        display.drawCircle(graph_x[muteCursor] + 15, graph_y[muteCursor] + 15, 11, WHITE);  // thin ring around the sticker
       } else {
-        drawMuteSticker(muteCursor, false);  // sticker con borde, encima de la figura
+        drawMuteSticker(muteCursor, false);  // outlined sticker over the shape
       }
     }
   }
 }
 
-// Cursor XOX: rombo relleno sobre el paso. Parpadea si el paso está encendido, queda fijo si está apagado.
+// XOX cursor: filled diamond on the step. It blinks when the step is on and stays still when it is off.
 void drawXoxCursor() {
   if (showOverlay || selected_setting != SETTING_XOX || selected_menu > MENU_CH_6) return;
   byte ch = selected_menu;
@@ -1537,9 +1537,9 @@ void drawOverlay() {
 void drawEuclideanRhythms() {
   if (showOverlay) return;  // Exit
   // draw hits line : 2~16hits if not muted
-  // Se traza punto a punto, sin copiar los puntos a arreglos (ahorra 34 bytes de RAM para la pila).
+  // Drawn point to point without copying points to arrays (saves 34 bytes of RAM for the stack).
   for (byte k = 0; k < MAX_CHANNELS; k++) {
-    if (currentConfig.mute[k] || selected_setting == SETTING_LIMIT) continue;  // en LIMI no se dibuja la figura
+    if (currentConfig.mute[k] || selected_setting == SETTING_LIMIT) continue;  // in LIMI the shape is not drawn
     int8_t first = -1, prev = -1;
     for (byte m = 0; m < MAX_STEPS; m++) {
       if (!stepOn(k, m)) continue;
@@ -1548,7 +1548,7 @@ void drawEuclideanRhythms() {
       prev = m;
     }
     if (first >= 0) {
-      // Cierra la figura. Con un solo paso sonando (eucli o XOX), línea del centro del anillo a ese paso.
+      // Close the shape. With a single active step (eucli or XOX), a line from the ring center to that step.
       byte x0 = pgm_read_byte(&x16[first]) + graph_x[k], y0 = pgm_read_byte(&y16[first]) + graph_y[k];
       if (first == prev) display.drawLine(15 + graph_x[k], 15 + graph_y[k], x0, y0, WHITE);
       else display.drawLine(x0, y0, pgm_read_byte(&x16[prev]) + graph_x[k], pgm_read_byte(&y16[prev]) + graph_y[k], WHITE);
@@ -1567,7 +1567,7 @@ void drawEuclideanRhythms() {
     }
   }
 
-  // Canal muteado: sticker blanco relleno con la M en negro (en LIMI se ve el número de pasos)
+  // Muted channel: filled white sticker with a black M (in LIMI the step count is shown instead)
   for (byte k = 0; k < MAX_CHANNELS; k++) {
     if (currentConfig.mute[k] && selected_setting != SETTING_LIMIT)
       drawMuteSticker(k, !((blinkMask >> k) & 1 && (millis() & 128)));  // parpadeo: relleno / borde
@@ -1579,8 +1579,8 @@ void drawEuclideanRhythms() {
     int y_base = graph_y[ch] + 8;
 
 
-    // Con más de 8 golpes la figura ya no se distingue: se muestra el número al centro, igual que en LIMI.
-    // En XOX cuenta los pasos encendidos del dibujo.
+    // With more than 8 hits the shape is hard to read: show the number at the center, as in LIMI.
+    // In XOX it counts the active steps of the drawing.
     byte nHits = isXox(ch) ? __builtin_popcount(xoxPattern[ch]) : currentConfig.hits[ch];
     if (currentConfig.mute[ch] == 0 && nHits > 8 && selected_setting != SETTING_LIMIT ) {
       drawRingNumber(ch, nHits);
@@ -1592,23 +1592,23 @@ void drawEuclideanRhythms() {
         case SETTING_HITS: break;
         case SETTING_OFFSET: break;
         case SETTING_LIMIT:
-          drawRingNumber(ch, currentConfig.limit[ch]);  // número de pasos al centro del anillo
+          drawRingNumber(ch, currentConfig.limit[ch]);  // step count at the ring center
           break;
       }
     }
   }
 }
 
-// Número al centro del anillo de un canal, en JARA. JARA se dibuja desde la línea base:
-// los números miden 7 px de alto, así que con la base en y+18 quedan centrados en el anillo (centro y+15).
-// (Se probó al doble, 14 px, y quedó muy grande.)
+// Number at the center of a channel ring, in JARA. JARA is drawn from the baseline:
+// digits are 7 px tall, so with the baseline at y+18 they are centered on the ring (center y+15).
+// (Double size, 14 px, was tried and looked too big.)
 void drawRingNumber(byte ch, byte n) {
   numAt(graph_x[ch] + (n > 9 ? 10 : 13), graph_y[ch] + 12);
   display.print(n);
 }
 
-// Sticker de mute: círculo de 19 px al centro del anillo con una M (tipografía de sistema, 5 x 7 px).
-// filled = canal muteado (blanco con M negra); si no, borde blanco, interior negro y M blanca.
+// Mute sticker: 19 px circle at the ring center with an M (system font, 5 x 7 px).
+// filled = muted channel (white with a black M); otherwise white outline, black inside and a white M.
 void drawMuteSticker(byte ch, bool filled) {
   int cx = graph_x[ch] + 15, cy = graph_y[ch] + 15;
   display.fillCircle(cx, cy, 9, filled ? WHITE : BLACK);
@@ -1619,8 +1619,8 @@ void drawMuteSticker(byte ch, bool filled) {
   display.setTextColor(WHITE);
 }
 
-// BPM en vertical en la columna izquierda (vacía cuando estás sobre un canal).
-// Reloj interno: el tempo ajustado. Externo: lo medido en CLK ("---" sin señal).
+// Vertical BPM in the left column (empty while a channel is selected).
+// Internal clock: the set tempo. External: the tempo measured at CLK ("---" without a signal).
 void drawBpmColumn() {
   int bpm = internalClock ? tempo : externalBPM;
   char d[5] = "---";
@@ -1628,35 +1628,38 @@ void drawBpmColumn() {
   leftMenu(d[0], d[1], d[2] ? d[2] : ' ', ' ');
 }
 
+// Probability as a donut: it fills clockwise from the top, like the step order,
+// and the number sits in the hole. The selected channel gets a thin outer ring,
+// like the mute mode cursor. No trigonometry: the edge direction is interpolated from the
+// 16-direction ring table, and each pixel is tested with cross products.
 void drawProbabilityConfig() {
   if (selected_setting != SETTING_PROB) return;  // Exit early
-  for (int ch = 0; ch < MAX_CHANNELS; ch++) {
-    int barWidth = 4;
-    int maxHeight = 15;
-    int margin = 2;
-
-    int bar_x = graph_x[ch] + 12;
-    int bar_y = graph_y[ch] + 30;
-
-    int barHeight = map(currentConfig.probability[ch], 0, 100, 0, maxHeight);
-    int startY = bar_y - barHeight;
-
-    int outerWidth = barWidth + 2 * margin;
-    int outerHeight = maxHeight + 2 * margin;
-    int outerX = bar_x - margin;
-    int outerY = bar_y - maxHeight - margin;
-
-    int text_x = outerX + (outerWidth / 2) - 6;
-    int text_y = outerY - 10;
-
-    text_x = constrain(text_x, 0, 128);
-    text_y = constrain(text_y, 0, 64);
-
-    numAt(text_x, text_y);
-    display.print(currentConfig.probability[ch]);
-
-    display.drawRoundRect(outerX, outerY, outerWidth, outerHeight, 2, WHITE);
-    display.fillRoundRect(bar_x, startY, barWidth, barHeight, 2, WHITE);
+  for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
+    int cx = graph_x[ch] + 15, cy = graph_y[ch] + 15;
+    byte p = currentConfig.probability[ch];
+    // sector edge direction, in 16ths of a turn with a 4-bit fraction
+    byte pos = p * 64 / 25 > 255 ? 255 : p * 64 / 25;  // p * 256 / 100
+    byte k = pos >> 4, fr = pos & 15, k2 = (k + 1) & 15;
+    int vx = ((int)pgm_read_byte(&x16[k & 15]) - 15) * (16 - fr) + ((int)pgm_read_byte(&x16[k2]) - 15) * fr;
+    int vy = ((int)pgm_read_byte(&y16[k & 15]) - 15) * (16 - fr) + ((int)pgm_read_byte(&y16[k2]) - 15) * fr;
+    for (int8_t y = -14; y <= 14; y++) {
+      for (int8_t x = -14; x <= 14; x++) {
+        int d = x * x + y * y;
+        if (d > 196 || d <= 81) continue;  // only the ring between radius 9 and 14
+        bool in;
+        if (p >= 100) in = true;
+        else {
+          bool cw = (long)x * vy - (long)y * vx > 0;  // the edge is further clockwise than the pixel
+          in = p <= 50 ? (x >= 0 && cw) : (x >= 0 || cw);
+        }
+        if (in && p) display.drawPixel(cx + x, cy + y, WHITE);
+      }
+    }
+    display.drawCircle(cx, cy, 14, WHITE);
+    display.drawCircle(cx, cy, 9, WHITE);
+    if (ch == selected_menu) display.drawCircle(cx, cy, 16, WHITE);  // selected channel
+    numAt(cx - (p >= 100 ? 9 : p >= 10 ? 6 : 3), cy - 3);
+    display.print(p);
   }
 }
 
@@ -1667,13 +1670,13 @@ void drawSaveLoadSelection() {
   {
     numAt(0, 14, 2);
     display.print(selected_slot + 1, DEC);
-    // memoria con algo guardado: círculo relleno; con el ritmo inicial: solo el borde
+    // slot with something saved: filled circle; initial rhythm: outline only
     bool used = slotUsed(selected_slot);
     if (used) display.fillCircle(32, 20, 4, WHITE);
     else display.drawCircle(32, 20, 4, WHITE);
     textAt(44, 14, 2);
     for (byte k = 0; k < 3; k++) display.print(nameEdit ? nameBuf[k] : nameChar(selected_slot, k));
-    if (nameEdit) display.drawFastHLine(44 + (nameEdit - 1) * 12, 31, 10, WHITE);  // letra que se edita
+    if (nameEdit) display.drawFastHLine(44 + (nameEdit - 1) * 12, 31, 10, WHITE);  // letter being edited
     textAt(0, 35);
     if (nameEdit) display.print(F("Name: turn, click"));
     else if (selected_menu == MENU_SAVE) display.print(used ? F("long PRESS Overwrite") : F("long PRESS Save"));
@@ -1682,9 +1685,9 @@ void drawSaveLoadSelection() {
     textAt(0, 35);
     display.print(F("long PRESS Load"));
   }
-  // Mientras se mantiene apretado, una línea se llena bajo el texto; llena = al soltar guarda o carga
+  // While held, a line fills under the text; when full, releasing saves or loads
   if (!nameEdit && encoder.isPressed()) {
-    uint16_t d = encoder.currentDuration() >> 2;  // en unidades de 4 ms
+    uint16_t d = encoder.currentDuration() >> 2;  // in 4 ms units
     if (d > LONG_CLICK_MS / 4) d = LONG_CLICK_MS / 4;
     display.drawFastHLine(0, 46, d + d / 4, WHITE);  // 375 ms -> ~116 px
   }
@@ -1705,7 +1708,7 @@ void drawTempo() {
     display.print(F("Dial in Tempo"));
 
     // Calculate the width of the filled portion based on the tempo
-    int filledWidth = (long)(tempo - 40) * (w - 22) / (240 - 40);  // margin on each side (sin float: ahorra flash)
+    int filledWidth = (long)(tempo - 40) * (w - 22) / (240 - 40);  // margin on each side (no float: saves flash)
 
     // Draw the rounded rectangle
     display.drawRoundRect(x1 + 10, y1 + h / 2 - 5, w - 20, 10, 2, WHITE);
@@ -1723,7 +1726,7 @@ void drawTempo() {
     display.print(F("240"));
 
   } else {
-    if (externalBPM == 0) {  // sin señal en CLK
+    if (externalBPM == 0) {  // no signal at CLK
       textAt(0, 0);
       display.print(F("Patch CLK or"));
       textAt(0, 13);
