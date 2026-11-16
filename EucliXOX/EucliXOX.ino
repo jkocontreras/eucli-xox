@@ -38,7 +38,6 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
-#include "JaraNumeros.h"  // JARA digits, JKO's pixel font (8 px), Adafruit GFX format
 
 void textAt(int x, int y, byte size = 1);  // see initDisplay()
 void numAt(int x, int y, byte size = 1);
@@ -715,12 +714,10 @@ void textAt(int x, int y, byte size) {
   display.setCursor(x, y);
 }
 
-// Numbers in JARA. JARA is drawn from the baseline: the digit height (6 px per size)
-// is added so x, y stay the top left corner.
+// Numbers in the system font. The positions were laid out for a font whose digits started
+// 1 px to the right, so x moves by one pixel per size step.
 void numAt(int x, int y, byte size) {
-  display.setFont(&JaraNumeros);
-  display.setTextSize(size);
-  display.setCursor(x, y + 6 * size);
+  textAt(x + size, y, size);
 }
 
 void initDisplay() {
@@ -1324,7 +1321,6 @@ void resetSeq() {
 }
 
 // Vertical side labels: system font (fixed width keeps the letters aligned).
-// Numbers elsewhere use JARA.
 void verticalMenu(byte x, byte y, char c1, char c2, char c3, char c4) {
   char c[4] = { c1, c2, c3, c4 };
   display.setFont(NULL);
@@ -1599,9 +1595,8 @@ void drawEuclideanRhythms() {
   }
 }
 
-// Number at the center of a channel ring, in JARA. JARA is drawn from the baseline:
-// digits are 7 px tall, so with the baseline at y+18 they are centered on the ring (center y+15).
-// (Double size, 14 px, was tried and looked too big.)
+// Number at the center of a channel ring. Digits are 7 px tall, so drawn from y+12
+// they are centered on the ring (center y+15). (Double size, 14 px, looked too big.)
 void drawRingNumber(byte ch, byte n) {
   numAt(graph_x[ch] + (n > 9 ? 10 : 13), graph_y[ch] + 12);
   display.print(n);

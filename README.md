@@ -35,7 +35,7 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 - mute mode with stickers, and the global cut that restores the previous mix;
 - 3-letter slot names, the saved/empty indicator, the overwrite notice and the hold line in S and L;
 - 9 presets ordered for learning, with a fixed channel order, written into the slots (the factory presets and the P menu were removed);
-- numbers at the center of the rings, BPM in the left column, probability donuts, the JARA pixel font for numbers, and the splash;
+- numbers at the center of the rings, BPM in the left column, probability donuts, and the splash;
 - fixes: RND bar cycle, LIMI above 16, the pixel noise from the stack reaching the display buffer, a steady external BPM reading, and shorter LED flashes.
 
 The screenshots below are rendered from the firmware's own drawing code, at 4× size.
@@ -158,7 +158,6 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 - PROB shows each channel's probability as a donut, with a ring on the selected channel.
 - Step and hit numbers at the center of the rings.
 - BPM in the empty left column.
-- Numbers drawn with the JARA pixel font (`JaraNumeros.h`, digits only). Text and menu letters use the system font.
 - SAVE, LOAD and TEMPO screens left-aligned with more line spacing.
 - Removed the small animated pixel noise in the lower right corner. It came from the stack reaching the display buffer; RAM use was reduced to fix it.
 
@@ -196,7 +195,7 @@ arduino-cli compile -b arduino:avr:nano --build-property "build.extra_flags=-DSS
 arduino-cli upload  -b arduino:avr:nano -p <port> EucliXOX
 ```
 
-Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30636 of the 30720 bytes available with the old bootloader.
+Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30502 of the 30720 bytes available with the old bootloader.
 
 ## License
 
