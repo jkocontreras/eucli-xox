@@ -2,11 +2,22 @@
 
 ![EUCLID + XOX splash](images/splash.png)
 
-An alternative firmware for the [Modulove A-RYTH-MATIK](https://github.com/modulove/A-RYTH-MATIK) (Arduino Nano / ATmega328P, SSD1306 OLED). It is a modified version of the Modulove **Euclid** firmware: it keeps the euclidean sequencer and adds step programming per channel, an autosaved working state, a mute mode for live use, presets that show how the module works, and a few fixes.
+EUCLID + XOX is a firmware for the 6 channel euclidean trigger sequencer designed by [HAGIWO](https://www.youtube.com/@HAGIWO). It redesigns the interface and the functions around simple live use:
 
-This is an unofficial firmware. It is not made or supported by Modulove; please send questions about it here, not to them.
+- each channel can be programmed step by step (XOX) or with the euclidean formula, and both modes can be mixed;
+- the working state is saved by itself and comes back at power-up;
+- channels are muted from a dedicated mode, and a global cut restores the previous mix;
+- the screen shows the state of each channel with a few consistent signs (rings, stickers, numbers, donuts);
+- 9 presets in the memory slots go from simple to complex and show how the module works.
 
-**Credits:** the 6 channel euclidean sequencer was created by [HAGIWO](https://www.youtube.com/@HAGIWO). [Modulove](https://github.com/modulove) & friends turned it into the A-RYTH-MATIK module and wrote the Euclid firmware this one is based on. The modifications are by Joaquín Contreras. The digits on screen use JARA, a pixel font by Joaquín Contreras.
+It runs on the [Modulove A-RYTH-MATIK](https://github.com/modulove/A-RYTH-MATIK) (Arduino Nano / ATmega328P, SSD1306 OLED). It was tested on a Modulove A-RYTH-MATIK and is based on the latest version of the Euclid firmware in the Modulove repository.
+
+This is an unofficial firmware. It is not made or supported by Modulove or HAGIWO; please send questions about it here.
+
+**Credits**
+- **HAGIWO** created the sequencer: the circuit, the idea of showing each channel as a ring on the OLED, and most of the original firmware.
+- **[Modulove](https://github.com/modulove) & friends** improved the hardware considerably (protected inputs and outputs, reset input, status LEDs, presoldered SMD kits) and extended HAGIWO's firmware into the Euclid firmware.
+- **Joaquín Contreras** redesigned the interface and the functions in this version, made the presets and drew the splash. The digits on screen use JARA, his pixel font.
 
 The screenshots below are rendered from the firmware's own drawing code, at 4× size.
 
