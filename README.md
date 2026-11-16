@@ -14,10 +14,29 @@ It runs on the [Modulove A-RYTH-MATIK](https://github.com/modulove/A-RYTH-MATIK)
 
 This is an unofficial firmware. It is not made or supported by Modulove or HAGIWO; please send questions about it here.
 
-**Credits**
-- **HAGIWO** created the sequencer: the circuit, the idea of showing each channel as a ring on the OLED, and most of the original firmware.
-- **[Modulove](https://github.com/modulove) & friends** improved the hardware considerably (protected inputs and outputs, reset input, status LEDs, presoldered SMD kits) and extended HAGIWO's firmware into the Euclid firmware.
-- **Joaquín Contreras** redesigned the interface and the functions in this version, made the presets and drew the splash. The digits on screen use JARA, his pixel font.
+## Credits: what comes from where
+
+**[HAGIWO](https://www.youtube.com/@HAGIWO)** created the sequencer ([article and original code](https://note.com/solder_state/n/n433b32ea6dbc)). The architecture of the firmware comes from his version:
+- the circuit and the 6 channel layout on a 128×64 OLED;
+- each channel drawn as a ring of 16 steps, with lines joining the hits into a shape, and a line from the center when there is a single hit;
+- the precomputed euclidean table for 16 steps, and the ring and layout tables;
+- the HIT, OFFSET, LIMIT, MUTE and RESET settings, and a random mode.
+
+**[Modulove](https://github.com/modulove) & friends** made the A-RYTH-MATIK module and the Euclid firmware this version is based on:
+- hardware: protected inputs and outputs, a reset input, status LEDs per output and for the clock, presoldered SMD kits, and a panel by bkrsmdesign;
+- probability per channel (PROB), random per channel, internal clock with tempo, and external BPM display;
+- 20 save and load slots in EEPROM, and 20 factory presets;
+- the RND auto advance over 2 to 16 bars, and the X random change;
+- encoder handling with press and turn, long clicks and acceleration, the all-reset and all-mute menus, and options for LGT8FX boards, a rotated panel and a reversed encoder.
+
+**Joaquín Contreras** redesigned the interface and the functions in this version:
+- XOX step programming per channel, combinable with the euclidean mode;
+- the autosaved working state;
+- mute mode with stickers, and the global cut that restores the previous mix;
+- 3-letter slot names, the saved/empty indicator, the overwrite notice and the hold line in S and L;
+- 9 presets ordered for learning, with a fixed channel order, written into the slots (the factory presets and the P menu were removed);
+- numbers at the center of the rings, BPM in the left column, probability donuts, the JARA pixel font for numbers, and the splash;
+- fixes: RND bar cycle, LIMI above 16, the pixel noise from the stack reaching the display buffer, a steady external BPM reading, and shorter LED flashes.
 
 The screenshots below are rendered from the firmware's own drawing code, at 4× size.
 
