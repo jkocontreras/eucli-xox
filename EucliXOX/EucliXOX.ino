@@ -1645,7 +1645,7 @@ void drawProbabilityConfig() {
     for (int8_t y = -14; y <= 14; y++) {
       for (int8_t x = -14; x <= 14; x++) {
         int d = x * x + y * y;
-        if (d > 196 || d <= 81) continue;  // only the ring between radius 9 and 14
+        if (d > 196 || d <= 100) continue;  // only the ring between radius 10 and 14 (the hole fits "100")
         bool in;
         if (p >= 100) in = true;
         else {
@@ -1656,7 +1656,7 @@ void drawProbabilityConfig() {
       }
     }
     display.drawCircle(cx, cy, 14, WHITE);
-    display.drawCircle(cx, cy, 9, WHITE);
+    display.drawCircle(cx, cy, 10, WHITE);
     if (ch == selected_menu) display.drawCircle(cx, cy, 16, WHITE);  // selected channel
     numAt(cx - (p >= 100 ? 9 : p >= 10 ? 6 : 3), cy - 3);
     display.print(p);
