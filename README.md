@@ -73,7 +73,7 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 ![LIMI shows the number of steps at the center of each ring](images/limi-pol.png)
 
 - In LIMI, each ring shows its number of steps at the center instead of the polygon.
-- With more than 8 hits, the ring shows the number of hits at the center. In XOX it counts the active steps.
+- From 5 hits on, the ring shows the number of hits at the center, over the shape. In XOX it counts the active steps.
 
 ### Mute (M)
 

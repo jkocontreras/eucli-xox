@@ -1575,10 +1575,10 @@ void drawEuclideanRhythms() {
     int y_base = graph_y[ch] + 8;
 
 
-    // With more than 8 hits the shape is hard to read: show the number at the center, as in LIMI.
+    // From 5 hits on, counting the corners gets slow: show the number at the center, as in LIMI.
     // In XOX it counts the active steps of the drawing.
     byte nHits = isXox(ch) ? __builtin_popcount(xoxPattern[ch]) : currentConfig.hits[ch];
-    if (currentConfig.mute[ch] == 0 && nHits > 8 && selected_setting != SETTING_LIMIT ) {
+    if (currentConfig.mute[ch] == 0 && nHits > 4 && selected_setting != SETTING_LIMIT ) {
       drawRingNumber(ch, nHits);
     }
 
