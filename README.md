@@ -2,6 +2,8 @@
 
 ![EUCLID + XOX splash](images/splash.png)
 
+Made by Joaquín Contreras (Oficina de Sonido).
+
 EUCLID + XOX is a firmware for the 6 channel euclidean trigger sequencer designed by [HAGIWO](https://www.youtube.com/@HAGIWO). It redesigns the interface and the functions around simple live use:
 
 - each channel can be programmed step by step (XOX) or with the euclidean formula, and both modes can be mixed;
