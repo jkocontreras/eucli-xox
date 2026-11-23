@@ -52,12 +52,26 @@ The screenshots below are rendered from the firmware's own drawing code, at 4× 
 Turn the encoder to move through the menu on the right column: channels **1–6**, **RND**, **X**, **S**, **L**, **T**, **R** and **M**.
 
 ### Channel menu
-On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → BARS → XOX**, then back to the top. Turning changes the value of the selected setting.
-- **Holding the encoder** on a channel (or inside one of its settings) shows an arrow in the left column. From 0.3 s a right arrow appears: releasing goes to the next setting (from XOX, back to the channel menu). From 1 s it becomes a left arrow: releasing goes back to the previous setting. Releasing before 0.3 s is a normal click.
+On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → BARS → XOX**, then back to the top. Turning changes the value of the selected setting. Holding the encoder also moves between settings, see Navigation with arrows.
 
 - Pressing and turning the encoder on a channel at the top level changes its HITS directly.
-- Channels are muted from **M**, not from the channel menu. Holding the encoder on a channel at the top level works like in its settings: from 0.3 s the right arrow appears and releasing goes to HITS.
+- Channels are muted from **M**, not from the channel menu. Holding the encoder on a channel at the top level works like in its settings (see Navigation with arrows).
 - When the left column is empty, it shows the current BPM, written vertically.
+
+### Navigation with arrows
+Holding the encoder on a channel, at its top level or inside any of its settings, shows an arrow in the left column in place of the setting name. Releasing runs what the arrow shows. It works the same everywhere on a channel.
+
+| Time held | Arrow | On release |
+|---|---|---|
+| under 0.3 s | none | normal click (in XOX it toggles the step) |
+| 0.3 s to 1 s | right (→) | next setting |
+| over 1 s | left (←) | previous setting |
+
+- At the top level of a channel, → goes to HITS. There is no left arrow there.
+- In XOX, → returns to the channel menu and ← goes back to BARS.
+- The order of the settings is the one of the click: HITS, OFFS, LIMI, RESET, RANDOM, PROB, BARS, XOX.
+- Channels are not muted from here: mute is in **M**.
+- The times are the constants `LONG_CLICK_MS` (300) and `HOLD_BACK_MS` (1000) in the source. S, L and T use `LONG_CLICK_MS` for their long click.
 
 ### Probability (PROB)
 PROB is the setting before XOX. Each channel shows its probability as a donut that fills clockwise from the top, with the number in the hole. A full donut is 100 %. The selected channel has a thin outer ring; press and turn to change channel.
@@ -76,7 +90,7 @@ XOX is the last setting of the channel menu.
 
 - Turn to move the cursor, a filled diamond, through the steps up to the LIMI length.
 - Click to turn the step under the cursor on or off. The diamond blinks when the step is on.
-- Hold to leave: from 0.3 s the right arrow appears and releasing returns to the channel menu; from 1 s the left arrow appears and releasing goes back to BARS. A short click only toggles the step.
+- Hold to leave, with the arrows (see Navigation with arrows): → returns to the channel menu and ← goes back to BARS. A short click only toggles the step.
 
 The first edit switches the channel to XOX and starts from the euclidean pattern that was playing. OFFS rotates the drawn pattern. Changing HITS, or a random change of the hits, returns the channel to euclidean mode; HITS starts from the number of active steps of the drawing.
 
