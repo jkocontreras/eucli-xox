@@ -48,16 +48,20 @@ The screenshots below are rendered from the firmware's own drawing code, at 4× 
 Turn the encoder to move through the menu on the right column: channels **1–6**, **RND**, **X**, **S**, **L**, **T**, **R** and **M**.
 
 ### Channel menu
-On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → XOX**, then back to the top. A long click goes back one setting. Turning changes the value of the selected setting.
+On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → BARS → XOX**, then back to the top. Turning changes the value of the selected setting.
+- **Holding the encoder** on a channel (or inside one of its settings) shows an arrow in the left column. From 0.3 s a right arrow appears: releasing goes to the next setting (from XOX, back to the channel menu). From 1 s it becomes a left arrow: releasing goes back to the previous setting. Releasing before 0.3 s is a normal click.
 
 - Pressing and turning the encoder on a channel at the top level changes its HITS directly.
-- A long click on a channel at the top level mutes or unmutes it.
+- Channels are muted from **M**, not from the channel menu. Holding the encoder on a channel at the top level works like in its settings: from 0.3 s the right arrow appears and releasing goes to HITS.
 - When the left column is empty, it shows the current BPM, written vertically.
 
 ### Probability (PROB)
 PROB is the setting before XOX. Each channel shows its probability as a donut that fills clockwise from the top, with the number in the hole. A full donut is 100 %. The selected channel has a thin outer ring; press and turn to change channel.
 
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
+
+### BARS (which bars play)
+BARS sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring. Each channel shows 4 boxes, one per bar: a filled box plays in that bar and an empty box is silent. Turn to go through the 16 combinations, ordered by number of filled boxes: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; older slots read as XXXX.
 
 ### XOX (step programming)
 XOX is the last setting of the channel menu.
@@ -66,7 +70,7 @@ XOX is the last setting of the channel menu.
 
 - Turn to move the cursor, a filled diamond, through the steps up to the LIMI length.
 - Click to turn the step under the cursor on or off. The diamond blinks when the step is on.
-- Long click to leave XOX.
+- Hold to leave: from 0.3 s the right arrow appears and releasing returns to the channel menu; from 1 s the left arrow appears and releasing goes back to BARS. A short click only toggles the step.
 
 The first edit switches the channel to XOX and starts from the euclidean pattern that was playing. OFFS rotates the drawn pattern. Changing HITS, or a random change of the hits, returns the channel to euclidean mode; HITS starts from the number of active steps of the drawing.
 
@@ -98,7 +102,7 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 - Next to the slot number, a filled circle means the slot has something saved; an outlined circle means it still has the initial rhythm (4 hits in 16 steps on every channel). In S, the bottom line reads "long PRESS Overwrite" when the slot has something saved.
 - While you hold the encoder in S or L, a line fills under the text. When it is full, releasing saves or loads; releasing earlier does nothing.
 - **Names:** each slot has a 3-letter name. After saving with a long click, the name opens for editing: turn to change the letter (space, A–Z, 0–9, -), click to go to the next one. A click after the third letter, or a long click at any time, closes it.
-- Slots use a compact 41-byte format that includes the XOX patterns. Slots from the previous Euclid format are converted automatically at the first boot.
+- Slots use a compact 41-byte format that includes the XOX patterns. Slots saved by the original Euclid firmware are not converted: on a module coming from it, the first boot starts with empty slots.
 
 ### Presets
 The 20 factory presets of the original firmware and the P menu were removed. Instead, 9 presets are written once into slots 1 to 9. They load and can be overwritten like any other slot. They go from simple to complex, and each one shows something about the module.
@@ -135,7 +139,7 @@ In eucli mode the formula always works on 16 steps, and LIMI cuts the pattern. 3
 The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm Generates Traditional Musical Rhythms" (2005).
 
 - On a new Nano, the presets fill slots 1 to 9.
-- When updating from the original Euclid, a slot is replaced only if it is still at the initial rhythm or holds the unchanged factory preset the old firmware stored there. Slots with your own rhythms are kept.
+- The presets are written only into slots that hold the initial rhythm. Slots with your own rhythms are kept.
 - Loading a preset sets its tempo but does not switch between internal and external clock.
 
 ### Clock
@@ -146,12 +150,12 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Sequencing**
 - XOX step programming mode per channel.
-- MUTE was removed from the channel settings; channels are muted from mute mode or with a long click on the channel.
+- MUTE was removed from the channel settings; channels are muted only from mute mode (M).
 - Mute mode on M, and a global cut that restores the previous mutes. The full-screen MUTE view was removed.
 
 **Memory**
 - Autosaved working state, written without stopping playback.
-- Compact slot format (`EUCLID11`) with XOX patterns and automatic migration from `EUCLID10`.
+- Compact slot format (`EUCLID11`) with XOX patterns (slots from the original `EUCLID10` format are not converted).
 - The 20 factory presets and the P menu were replaced by 9 presets stored in the slots, with a fixed channel order (see Presets).
 - 3-letter slot names, a saved/empty indicator, and an overwrite notice in S.
 
@@ -184,7 +188,7 @@ avrdude -p atmega328p -c arduino -P <port> -b 115200 -U flash:w:EucliXOX_normal.
 
 Nanos with the old bootloader use `-b 57600`. Flash the module with only the USB cable connected, without Eurorack power.
 
-At the first boot, slots saved with the original Euclid firmware are converted to the new format, and the presets are written into slots 1 to 9 where they are still empty or hold the unchanged factory presets. Slots with your own rhythms are kept. To be safe, back up your EEPROM before flashing: `avrdude ... -U eeprom:r:backup.hex:i`.
+At the first boot on a module that ran the original Euclid firmware, the slots start empty (they are not converted) and the presets are written into slots 1 to 9. To be safe, back up your EEPROM before flashing: `avrdude ... -U eeprom:r:backup.hex:i`.
 
 ## Building
 

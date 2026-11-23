@@ -126,14 +126,14 @@ enum Setting {
   SETTING_RESET,
   SETTING_RANDOM,
   SETTING_PROB,
-  SETTING_XOX,  // XOX mode: turn moves the cursor, click toggles the step, long click leaves
+  SETTING_BARS,  // BARS: in which of 2 consecutive bars (16 clocks each) the channel plays
+  SETTING_XOX,  // XOX mode: turn moves the cursor, click toggles the step, hold leaves
   SETTING_LAST
 };
 
 // For debug / UI
-// EUCLID11: compact slot format with XOX patterns. EUCLID10 slots are converted at power-up.
+// EUCLID11: compact slot format with XOX patterns. Slots of any other format are not converted.
 #define FIRMWARE_MAGIC "EUCLID11"
-#define LEGACY_MAGIC "EUCLID10"
 #define FIRMWARE_MAGIC_ADDRESS 0  // Store firmware magic (read with debug fw!)
 
 // OLED
@@ -155,6 +155,23 @@ enum Setting {
 bool trg_in = false, old_trg_in = false, rst_in = false, old_rst_in = false;
 
 byte playing_step[6] = { 0 };
+
+// BARS: a bar is 16 clocks (one turn of the ring) and the cycle is 4 bars. Each channel plays a block of
+// consecutive bars. barCond = index into barMask, in the order shown when turning:
+// 0000, then by number of hits: X000 0X00 00X0 000X, XX00 0XX0 00XX X0X0 0X0X X00X, XXX0 0XXX XX0X X0XX, XXXX
+// (bit n of the mask = plays in bar n+1).
+// Saved in the high nibble of offset[] (OFFS is 0..15), XORed with 15 so that old slots read as XXXX.
+const byte barMask[16] PROGMEM = { 0, 1, 2, 4, 8, 3, 6, 12, 5, 10, 9, 7, 14, 11, 13, 15 };
+#define BAR_ALL 15
+byte barCond[6] = { BAR_ALL, BAR_ALL, BAR_ALL, BAR_ALL, BAR_ALL, BAR_ALL };
+byte barClock = 15;  // clock count inside the bar; 15 so that the next clock starts bar 1
+byte barIdx = 3;     // bar being played, 0..3
+
+// Holding the encoder on a channel (its menu or its settings): 0 nothing, 1 = arrow right (next, from 0.3 s),
+// 2 = arrow left (previous, from 1 s). Releasing runs the action that the arrow shows.
+byte holdArrow = 0;
+byte holdLast = 0;  // last arrow shown while pressed; the library reports the long click a few ms after releasing
+#define HOLD_BACK_MS 1000
 
 // display Menu and UI
 // Select settings menu and channel menu
@@ -195,7 +212,7 @@ constexpr uint8_t MAX_PATTERNS = 17;
 const int MIN_REFRESH_DURATION = 375;  // 250;  // 125;  // Used by fast inputs like encoder rotation to throttle the display refresh. (3 steps)
 unsigned long gate_timer = 0;
 #define LED_FLASH_MS 5  // LED flash (channels and clock); shorter looks dimmer (original: 30)
-#define LONG_CLICK_MS 375  // long click duration
+#define LONG_CLICK_MS 300  // long click duration
 #define TRIG_MS 25      // output trigger length in code. The screen redraws after the LED flash and takes
                         // ~25 ms, so in practice triggers last ~30 ms, as before.
 unsigned long last_clock_input = 0;
@@ -279,23 +296,6 @@ struct StoredConfig {
   byte internalClock;  // 0 external, 1 internal, 2 = loading does not change the clock (presets)
 };
 
-// EUCLID10 format (46 bytes per slot), only used to convert old slots.
-struct LegacySlot {
-  byte hits[MAX_CHANNELS];
-  byte offset[MAX_CHANNELS];
-  bool mute[MAX_CHANNELS];
-  byte limit[MAX_CHANNELS];
-  byte probability[MAX_CHANNELS];
-  char name[10];
-  int tempo;
-  bool internalClock;
-  byte lastUsedSlot;
-  byte selectedPreset;
-  bool lastLoadedFromPreset;
-};
-#define LEGACY_SLOT_SIZE (sizeof(LegacySlot))
-#define LEGACY_LAST_USED_SLOT_ADDRESS (EEPROM_START_ADDRESS + NUM_MEMORY_SLOTS * LEGACY_SLOT_SIZE)
-
 // Autosave state
 unsigned long lastChangeTime = 0;
 bool autosavePending = false;
@@ -311,8 +311,7 @@ const char NAME_CHARS[] PROGMEM = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-";
 byte nameEdit = 0;  // 0 = not naming; 1..3 = letter being edited
 char nameBuf[3];
 
-// Presets written once into slots 1 to 9 (only where the slot holds the initial rhythm or the unchanged
-// old factory preset). From simple to complex: EUC, BOS and CUB in eucli mode (16 steps, they show HITS
+// Presets written once into slots 1 to 9 (only where the slot holds the initial rhythm). From simple to complex: EUC, BOS and CUB in eucli mode (16 steps, they show HITS
 // and OFFS); DEM, CMB and BRK drawn in XOX (CMB and BRK mix in eucli channels); TER (12 steps) and POL
 // (different lengths) show LIMI.
 // Channel order: 1 kick, 2 snare/clap, 3 closed hat, 4 open hat/cymbal, 5 percussion, 6 percussion/accent.
@@ -339,66 +338,55 @@ const StoredConfig presets[] PROGMEM = {
 const char presetNames[] PROGMEM = "EUCBOSCUBDEMCMBBRKTERPOLDIV";
 #define NUM_PRESETS (sizeof(presets) / sizeof(StoredConfig))
 
-// Factory presets of the original Euclid, stored in slots 1 to 9 (hits, offsets, lengths)
-const byte oldFactory[9][18] PROGMEM = {
-  { 4, 4, 7, 4, 4, 4, 0, 2, 3, 2, 1, 0, 16, 16, 12, 8, 16, 16 },        // Techno
-  { 4, 4, 4, 4, 4, 4, 0, 1, 0, 1, 0, 1, 16, 16, 16, 16, 16, 16 },       // Funk
-  { 4, 4, 4, 4, 4, 4, 0, 1, 3, 1, 0, 2, 12, 12, 12, 12, 12, 12 },       // Swing
-  { 3, 4, 3, 4, 3, 4, 0, 2, 3, 2, 0, 2, 8, 8, 8, 8, 8, 8 },             // Samba
-  { 4, 3, 4, 3, 4, 3, 0, 2, 0, 2, 0, 2, 12, 12, 12, 12, 12, 12 },       // Waltz
-  { 2, 2, 3, 3, 3, 3, 0, 2, 0, 2, 0, 2, 16, 16, 16, 16, 16, 16 },       // BossaN
-  { 7, 7, 7, 7, 7, 7, 0, 2, 4, 6, 8, 10, 12, 12, 12, 12, 12, 12 },      // Bell
-  { 2, 2, 3, 1, 2, 1, 0, 1, 0, 2, 1, 0, 24, 18, 24, 21, 16, 30 },       // Gen
-  { 4, 4, 4, 4, 4, 4, 0, 1, 0, 2, 0, 3, 16, 16, 16, 16, 16, 16 },       // Gahu
-};
+
 byte autosaveCheck = 0;
 
-// Boot splash, EUCLID + XOX, 80x36 px, 360 bytes. Generated from JKO's drawing (128x64 canvas)
+// Boot splash, EUCLID + XOX, 72x39 px, 351 bytes. Generated from JKO's drawing (images/splash-nuevo.png, 128x64 canvas)
 const unsigned char Splash_Logo [] PROGMEM = {
-  0x01, 0xc2, 0x02, 0x01, 0xc0, 0x70, 0x03, 0xfe, 0x1e, 0x00,
-  0x03, 0x45, 0x05, 0x03, 0x60, 0x58, 0x02, 0x03, 0x13, 0x00,
-  0x06, 0x75, 0x84, 0x86, 0x30, 0x4c, 0x02, 0x03, 0x11, 0x80,
-  0x0c, 0xf5, 0xc4, 0xc4, 0x18, 0x5c, 0x03, 0xcf, 0x90, 0x40,
-  0x19, 0xe5, 0xc4, 0xcc, 0xcc, 0x5c, 0x00, 0x4e, 0x12, 0x20,
-  0x33, 0xc5, 0xc4, 0xc9, 0xe4, 0x5c, 0x00, 0x4c, 0x13, 0x18,
-  0x67, 0x85, 0xc4, 0xd3, 0xfe, 0x5c, 0x00, 0x4c, 0x13, 0x8c,
-  0xcf, 0xe4, 0xc4, 0xf3, 0x8e, 0xdc, 0x00, 0x4c, 0x13, 0x64,
-  0x80, 0x24, 0xc4, 0xe7, 0x00, 0xdc, 0x00, 0x4c, 0x13, 0x26,
-  0x80, 0x34, 0xc4, 0xe7, 0x00, 0xdc, 0x00, 0x4c, 0x13, 0xc7,
-  0xc7, 0xfc, 0xc9, 0xe2, 0x08, 0xdc, 0x00, 0x4c, 0x13, 0x8f,
-  0x67, 0x06, 0x59, 0xd3, 0x34, 0xdc, 0xe0, 0x4c, 0x13, 0x3e,
-  0x33, 0x03, 0x33, 0x89, 0xe6, 0xdc, 0x90, 0x4c, 0x12, 0x78,
-  0x19, 0x81, 0x07, 0x8c, 0xcf, 0x9f, 0x3b, 0xce, 0x10, 0xf0,
-  0x0c, 0xc0, 0x87, 0x06, 0x1e, 0x80, 0x3a, 0x01, 0x11, 0xe0,
-  0x06, 0x60, 0xce, 0x02, 0x3c, 0x4f, 0xf2, 0x03, 0x93, 0xc0,
-  0x03, 0x60, 0x7e, 0x01, 0xf8, 0x3f, 0xf1, 0xff, 0x8f, 0x80,
-  0x00, 0xf0, 0x0c, 0x00, 0xf0, 0x00, 0x00, 0x00, 0x01, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-  0x00, 0x00, 0x00, 0x01, 0x01, 0xc1, 0xe0, 0x60, 0x30, 0x00,
-  0x00, 0x00, 0x00, 0x02, 0x83, 0x41, 0x30, 0xd0, 0x48, 0x00,
-  0x00, 0x00, 0x00, 0x02, 0x46, 0x63, 0x18, 0x98, 0xcc, 0x00,
-  0x00, 0x00, 0x00, 0x02, 0x64, 0xf2, 0x08, 0x4d, 0x9c, 0x00,
-  0x00, 0x03, 0x00, 0x01, 0x39, 0xe4, 0xcc, 0x67, 0x3c, 0x00,
-  0x00, 0x07, 0x80, 0x01, 0x99, 0xcc, 0xe6, 0x36, 0x78, 0x00,
-  0x00, 0x04, 0x80, 0x00, 0xc3, 0x89, 0xe6, 0x10, 0x70, 0x00,
-  0x00, 0x1c, 0xe0, 0x00, 0x47, 0x91, 0xd3, 0x08, 0xe0, 0x00,
-  0x00, 0x30, 0x30, 0x00, 0x47, 0x13, 0x93, 0x08, 0xc0, 0x00,
-  0x00, 0x30, 0x30, 0x00, 0xc3, 0x19, 0x93, 0x90, 0x40, 0x00,
-  0x00, 0x1c, 0xf8, 0x01, 0x99, 0x09, 0xa7, 0xb6, 0x60, 0x00,
-  0x00, 0x04, 0xc0, 0x01, 0x3d, 0x8c, 0xe7, 0x67, 0x30, 0x00,
-  0x00, 0x07, 0xc0, 0x02, 0x7c, 0xc4, 0x4e, 0xcf, 0x98, 0x00,
-  0x00, 0x03, 0xc0, 0x04, 0x72, 0x62, 0x1e, 0x9e, 0xc8, 0x00,
-  0x00, 0x00, 0x00, 0x04, 0xe3, 0x23, 0x1c, 0xbc, 0x4c, 0x00,
-  0x00, 0x00, 0x00, 0x07, 0xe1, 0xf1, 0xb8, 0xf8, 0x2e, 0x00,
-  0x00, 0x00, 0x00, 0x00, 0xc0, 0xb0, 0xf8, 0x10, 0x1e, 0x00
+  0x03, 0xff, 0x8f, 0xcf, 0xe0, 0x00, 0x00, 0x03, 0xfe, 0x06,
+  0x00, 0x50, 0x68, 0x31, 0xc0, 0xa0, 0x46, 0x03, 0x0f, 0xff,
+  0x7f, 0xff, 0xf3, 0xfe, 0xff, 0x4f, 0xfd, 0x1f, 0xfd, 0xfc,
+  0xfe, 0x77, 0xf9, 0xfd, 0x7f, 0xe5, 0x20, 0x03, 0x82, 0x81,
+  0x7e, 0x07, 0x07, 0x60, 0x15, 0x7f, 0xfb, 0xfb, 0xfd, 0x7f,
+  0xf7, 0xf3, 0xff, 0xd5, 0x80, 0x0c, 0x0f, 0x05, 0x70, 0x14,
+  0x0b, 0x80, 0x75, 0x80, 0x0c, 0x0f, 0x05, 0xc0, 0x1c, 0x0b,
+  0x80, 0x76, 0x80, 0x0c, 0x0f, 0x05, 0x80, 0x1c, 0x0b, 0x80,
+  0x7c, 0x80, 0x0c, 0x0f, 0x05, 0x00, 0x1c, 0x0b, 0x80, 0x7e,
+  0x80, 0x0c, 0x0f, 0x07, 0x00, 0x1c, 0x0b, 0x80, 0x7b, 0x80,
+  0xfc, 0x0f, 0x07, 0x00, 0x1c, 0x0a, 0x80, 0x6d, 0x81, 0xdc,
+  0x0f, 0x06, 0x03, 0xfc, 0x0b, 0xc0, 0xe5, 0x80, 0xcc, 0x06,
+  0x06, 0x02, 0x04, 0x08, 0xc0, 0x95, 0x80, 0x74, 0x00, 0x06,
+  0x03, 0xf4, 0x0f, 0xc0, 0xd5, 0x80, 0x0a, 0x00, 0x07, 0x00,
+  0x14, 0x01, 0x80, 0x75, 0x80, 0x0a, 0x00, 0x07, 0x00, 0x1c,
+  0x01, 0x80, 0x76, 0x80, 0x0a, 0x00, 0x07, 0x00, 0x1c, 0x01,
+  0x80, 0x7c, 0x80, 0x0b, 0x00, 0x09, 0x80, 0x1c, 0x01, 0x80,
+  0x78, 0x80, 0x0f, 0x80, 0x1b, 0xc0, 0x1c, 0x01, 0x80, 0x70,
+  0x80, 0x0c, 0xe0, 0x77, 0xf8, 0x1c, 0x01, 0x80, 0x40, 0x7f,
+  0xfe, 0xff, 0xdc, 0x1f, 0xff, 0xff, 0xff, 0xc0, 0x01, 0xfb,
+  0xfd, 0x7f, 0xc2, 0xfc, 0xff, 0x58, 0x00, 0x02, 0x0d, 0x03,
+  0xf0, 0x31, 0x82, 0xc1, 0x50, 0x00, 0x02, 0x05, 0x03, 0xc0,
+  0x0d, 0x02, 0x81, 0x70, 0x00, 0x02, 0x06, 0x03, 0x80, 0x05,
+  0x01, 0x81, 0xe0, 0x00, 0x02, 0x02, 0x03, 0x00, 0x03, 0x01,
+  0x01, 0xd0, 0x00, 0x02, 0x00, 0x07, 0x00, 0x03, 0x80, 0x01,
+  0xd0, 0x00, 0x01, 0x00, 0x0e, 0x00, 0x01, 0x80, 0x03, 0x48,
+  0x00, 0x01, 0x80, 0x0e, 0x07, 0x81, 0x40, 0x03, 0x28, 0x00,
+  0x00, 0x80, 0x1a, 0x04, 0x81, 0xe0, 0x04, 0xac, 0x00, 0x01,
+  0x80, 0x0a, 0x07, 0x81, 0xc0, 0x02, 0x9c, 0x00, 0x01, 0x00,
+  0x0e, 0x00, 0x01, 0xc0, 0x02, 0x5c, 0x00, 0x02, 0x00, 0x07,
+  0x00, 0x03, 0x80, 0x01, 0x58, 0x00, 0x02, 0x02, 0x03, 0x00,
+  0x03, 0x01, 0x01, 0x70, 0x00, 0x02, 0x06, 0x03, 0x80, 0x05,
+  0x01, 0x81, 0x40, 0x00, 0x02, 0x07, 0x03, 0xc0, 0x0d, 0x03,
+  0x81, 0xc0, 0x00, 0x02, 0x0d, 0x02, 0x30, 0x31, 0x82, 0xc1,
+  0x00, 0x00, 0x01, 0xf8, 0xfc, 0x0f, 0xc0, 0xfc, 0x7f, 0x00,
+  0x00
 };
-const byte logoWidth = 80;
-const byte logoHeight = 36;
+const byte logoWidth = 72;
+const byte logoHeight = 39;
 
 // Boot splash: the image keeps its position from the original 128x64 canvas
 void drawAnimation() {
   display.clearDisplay();
-  display.drawBitmap(23, 15, Splash_Logo, logoWidth, logoHeight, WHITE);
+  display.drawBitmap(31, 13, Splash_Logo, logoWidth, logoHeight, WHITE);
   display.display();
 }
 
@@ -616,6 +604,10 @@ void loop() {
         playing_step[i] = 0;  // Step limit is reached
       }
     }
+    if (++barClock >= 16) {
+      barClock = 0;
+      barIdx = (barIdx + 1) & 3;
+    }
 
     // Output gate signal
     outputGateSignals();
@@ -666,6 +658,20 @@ void loop() {
   }
 
   globalCut();
+  {  // arrow while holding inside a channel setting
+    byte arrow = 0;
+    if (encoder.isPressed()) {
+      if (selected_menu <= MENU_CH_6 && !showOverlay) {
+        unsigned long d = encoder.currentDuration();
+        arrow = d >= HOLD_BACK_MS && selected_setting != SETTING_TOP_MENU ? 2 : d >= LONG_CLICK_MS ? 1 : 0;  // no left arrow in the channel menu
+      }
+      holdLast = arrow;
+    }
+    if (arrow != holdArrow) {
+      holdArrow = arrow;
+      disp_refresh = true;
+    }
+  }
   if (showOverlay && encoder.isPressed()) disp_refresh = true;  // long click line in S and L
 
   // Redrawing the screen takes ~25 ms and nothing can be switched off meanwhile:
@@ -745,7 +751,7 @@ void initDisplay() {
 
 void outputGateSignals() {
   for (int i = 0; i < MAX_CHANNELS; i++) {
-    if (stepOn(i, playing_step[i]) && currentConfig.mute[i] == 0 && random(100) < currentConfig.probability[i]) {
+    if (stepOn(i, playing_step[i]) && currentConfig.mute[i] == 0 && ((pgm_read_byte(&barMask[barCond[i]]) >> barIdx) & 1) && random(100) < currentConfig.probability[i]) {
       switch (i) {
         case 0:
           OUTPUT1::setOutput(1);
@@ -842,12 +848,11 @@ void onEncoderLongClicked(EncoderButton &eb) {
   }
   disp_refresh = true;
 
-  // If we're in the parameter settings (Hits, Offset, Limit, etc.) for one of the channels
-  if (selected_menu <= MENU_CH_6 && selected_setting == SETTING_XOX) {
-    selected_setting = SETTING_TOP_MENU;  // long click leaves XOX
-  } else if (selected_menu <= MENU_CH_6 && selected_setting != SETTING_TOP_MENU) {
-    // Decrement the selected menu to allow back navigation
-    selected_setting = static_cast<Setting>((selected_setting - 1 + SETTING_LAST) % SETTING_LAST);
+  // On a channel (its menu or its settings): the arrow that was showing decides. Right (or just a long click)
+  // = next setting (from the channel menu, HITS; after the last one, the channel menu), left = previous setting.
+  // Channels are muted only from M.
+  if (selected_menu <= MENU_CH_6) {
+    selected_setting = static_cast<Setting>((selected_setting + (holdLast == 2 ? SETTING_LAST - 1 : 1)) % SETTING_LAST);
   } else if (showOverlay) {
     // Handle specific overlay actions
     switch (selected_menu) {
@@ -876,12 +881,7 @@ void onEncoderLongClicked(EncoderButton &eb) {
     internalClock = !internalClock;  // Toggle the internal clock state
     showOverlay = true;              // Show overlay to indicate clock state change
     if (internalClock) period = 60000 / tempo / 4;
-  } else if (selected_setting == SETTING_TOP_MENU && selected_menu <= MENU_CH_6) {
-    // Mute the selected channel
-    int channelIndex = selected_menu - MENU_CH_1;
-    currentConfig.mute[channelIndex] = !currentConfig.mute[channelIndex];
-    cutMask = 0;
-  } 
+  }
 }
 
 
@@ -1088,6 +1088,7 @@ bool loadAutosave() {
 
 void packConfig(StoredConfig &s) {
   memcpy(s.hits, currentConfig.hits, MAX_CHANNELS);
+  for (byte c = 0; c < MAX_CHANNELS; c++) s.offset[c] |= (barCond[c] ^ BAR_ALL) << 4;
   memcpy(s.offset, currentConfig.offset, MAX_CHANNELS);
   memcpy(s.limit, currentConfig.limit, MAX_CHANNELS);
   memcpy(s.probability, currentConfig.probability, MAX_CHANNELS);
@@ -1103,8 +1104,9 @@ void packConfig(StoredConfig &s) {
 
 void unpackConfig(const StoredConfig &s) {
   for (byte c = 0; c < MAX_CHANNELS; c++) {
+    barCond[c] = (s.offset[c] >> 4) ^ BAR_ALL;
     currentConfig.hits[c] = s.hits[c] < MAX_PATTERNS ? s.hits[c] : 0;
-    currentConfig.offset[c] = s.offset[c] % MAX_STEPS;
+    currentConfig.offset[c] = (s.offset[c] & 15) % MAX_STEPS;
     currentConfig.limit[c] = s.limit[c];
     currentConfig.probability[c] = s.probability[c] <= 100 ? s.probability[c] : 100;
     currentConfig.mute[c] = s.muteMask & (1 << c);
@@ -1119,31 +1121,6 @@ void unpackConfig(const StoredConfig &s) {
   period = 60000 / tempo / 4;
   updateRythm();
   disp_refresh = true;
-}
-
-// Convert EUCLID10 slots (46 bytes) to the compact format (41 bytes).
-// New slots start before the old ones, so each one is read completely before it is overwritten.
-void migrateLegacySlots() {
-  byte last = EEPROM.read(LEGACY_LAST_USED_SLOT_ADDRESS);
-  for (byte i = 0; i < NUM_MEMORY_SLOTS; i++) {
-    LegacySlot old;
-    StoredConfig s;
-    EEPROM.get(EEPROM_START_ADDRESS + i * LEGACY_SLOT_SIZE, old);
-    memcpy(s.hits, old.hits, MAX_CHANNELS);
-    memcpy(s.offset, old.offset, MAX_CHANNELS);
-    memcpy(s.limit, old.limit, MAX_CHANNELS);
-    memcpy(s.probability, old.probability, MAX_CHANNELS);
-    s.muteMask = 0;
-    for (byte c = 0; c < MAX_CHANNELS; c++) {
-      if (old.mute[c]) s.muteMask |= 1 << c;
-    }
-    s.xoxMask = 0;
-    memset(s.xox, 0, sizeof(s.xox));
-    s.tempo = old.tempo;
-    s.internalClock = old.internalClock;
-    EEPROM.put(EEPROM_START_ADDRESS + i * CONFIG_SIZE, s);
-  }
-  EEPROM.update(LAST_USED_SLOT_ADDRESS, last < NUM_MEMORY_SLOTS ? last : 0);
 }
 
 void handleSettingNavigation(int changeDirection) {
@@ -1169,6 +1146,9 @@ void handleSettingNavigation(int changeDirection) {
       break;
     case SETTING_PROB:  // Set probability
       currentConfig.probability[selected_menu] = (currentConfig.probability[selected_menu] + changeDirection + 101) % 101;
+      break;
+    case SETTING_BARS:
+      barCond[selected_menu] = (barCond[selected_menu] + (changeDirection > 0 ? 1 : 15)) & 15;
       break;
     case SETTING_XOX: {  // turning moves the cursor one step
       byte len = currentConfig.limit[selected_menu];
@@ -1217,25 +1197,15 @@ bool slotUsed(byte slot) {
   return false;
 }
 
-// The slot holds the unchanged old factory preset for its position (from the previous firmware)
-bool isOldFactory(byte slot) {
-  StoredConfig s;
-  byte ref[18];
-  EEPROM.get(EEPROM_START_ADDRESS + slot * CONFIG_SIZE, s);
-  memcpy_P(ref, oldFactory[slot], 18);
-  for (byte c = 0; c < MAX_CHANNELS; c++)
-    if (s.probability[c] != 100) return false;
-  return !s.muteMask && !s.xoxMask && !memcmp(&s, ref, 18);
-}
 
 // Write the presets once, without overwriting slots with the user's own rhythms
-// (the initial rhythm and unchanged old factory presets are replaced)
+// (only slots holding the initial rhythm are replaced)
 void writePresets() {
   if (EEPROM.read(PRESETS_FLAG_ADDRESS) == PRESETS_MARK) return;
   // first time: the name area may hold leftovers of the old format; all names become dashes
   for (byte k = 0; k < NUM_MEMORY_SLOTS * 3; k++) EEPROM.update(NAMES_ADDRESS + k, '-');
   for (byte i = 0; i < NUM_PRESETS; i++) {
-    if (slotUsed(i) && !isOldFactory(i)) continue;
+    if (slotUsed(i)) continue;
     StoredConfig s;
     memcpy_P(&s, &presets[i], sizeof(s));
     EEPROM.put(EEPROM_START_ADDRESS + i * CONFIG_SIZE, s);
@@ -1318,6 +1288,8 @@ void resetSeq() {
   for (int k = 0; k < MAX_CHANNELS; k++) {
     playing_step[k] = 15;
   }
+  barClock = 15;
+  barIdx = 3;
 }
 
 // Vertical side labels: system font (fixed width keeps the letters aligned).
@@ -1367,6 +1339,10 @@ void drawTopMenuRight(TopMenu select_ch) {
 // left side menue - Channel Settings
 void drawChannelEditMenu(TopMenu select_ch, Setting select_menu) {
   if (showOverlay) return;  // Exit
+  if (holdArrow) {          // the arrow takes the place of the setting name while holding
+    for (byte i = 0; i < 9; i++) display.drawFastVLine(holdArrow == 1 ? i : 8 - i, 36 + i, 17 - 2 * i, WHITE);
+    return;
+  }
   switch (select_menu) {
     case SETTING_HITS: leftMenu('H', 'I', 'T', 'S'); break;
     case SETTING_OFFSET: leftMenu('O', 'F', 'F', 'S'); break;
@@ -1374,6 +1350,7 @@ void drawChannelEditMenu(TopMenu select_ch, Setting select_menu) {
     case SETTING_RESET: leftMenu('R', 'S', 'E', 'T'); break;
     case SETTING_RANDOM: leftMenu('R', 'A', 'N', 'D'); break;
     case SETTING_PROB: leftMenu('P', 'R', 'O', 'B'); break;
+    case SETTING_BARS: leftMenu('B', 'A', 'R', 'S'); break;
     case SETTING_XOX: leftMenu('X', 'O', 'X', ' '); break;
     default: break;
   }
@@ -1408,11 +1385,7 @@ void checkAndInitializeSettings() {
 
   if (strncmp(magic, FIRMWARE_MAGIC, sizeof(FIRMWARE_MAGIC)) == 0) return;
 
-  if (strncmp(magic, LEGACY_MAGIC, sizeof(LEGACY_MAGIC)) == 0) {
-    migrateLegacySlots();  // slots from the previous firmware: convert them
-  } else {
-    initializeDefaultRhythms();  // EEPROM without a known format: basic rhythm in every slot
-  }
+  initializeDefaultRhythms();  // EEPROM without a known format: basic rhythm in every slot
   EEPROM.update(AUTOSAVE_ADDRESS, 0);  // no valid autosave yet
   EEPROM.put(FIRMWARE_MAGIC_ADDRESS, FIRMWARE_MAGIC);
 }
@@ -1478,7 +1451,7 @@ void drawMainScreen() {
   drawTopMenuRight(selected_menu);
   drawChannelEditMenu(selected_menu, selected_setting);
   drawModeMenu(selected_menu);
-  if (!showOverlay && selected_setting == SETTING_TOP_MENU && selected_menu <= MENU_CH_6) drawBpmColumn();
+  if (!showOverlay && !holdArrow && selected_setting == SETTING_TOP_MENU && selected_menu <= MENU_CH_6) drawBpmColumn();
 
   if (selected_menu == MENU_RANDOM_ADVANCE) {
     drawRandomModeAdvanceSquare(bar_select, bar_now, bar_max);
@@ -1488,6 +1461,8 @@ void drawMainScreen() {
 
   if (selected_setting == SETTING_PROB) {
     drawProbabilityConfig();
+  } else if (selected_setting == SETTING_BARS) {
+    drawBarsConfig();
   } else {
     drawStepDots(currentConfig);
     drawEuclideanRhythms();
@@ -1640,7 +1615,7 @@ void drawProbabilityConfig() {
     for (int8_t y = -14; y <= 14; y++) {
       for (int8_t x = -14; x <= 14; x++) {
         int d = x * x + y * y;
-        if (d > 196 || d <= 100) continue;  // only the ring between radius 10 and 14 (the hole fits "100")
+        if (d > 196 || d <= 144) continue;  // only the ring between radius 12 and 14 (the hole fits "100" with room)
         bool in;
         if (p >= 100) in = true;
         else {
@@ -1651,10 +1626,27 @@ void drawProbabilityConfig() {
       }
     }
     display.drawCircle(cx, cy, 14, WHITE);
-    display.drawCircle(cx, cy, 10, WHITE);
+    display.drawCircle(cx, cy, 12, WHITE);
     if (ch == selected_menu) display.drawCircle(cx, cy, 16, WHITE);  // selected channel
     numAt(cx - (p >= 100 ? 9 : p >= 10 ? 6 : 3), cy - 3);
     display.print(p);
+  }
+}
+
+// BARS: each channel shows a square divided in 4, one quarter per bar of the cycle (reading order:
+// top left = bar 1, top right = bar 2, bottom left = bar 3, bottom right = bar 4).
+// A filled quarter plays in that bar, an empty one is only outlined. A black line of 1 px separates
+// the quarters, so with everything filled the grid still shows. The selected channel gets a frame.
+void drawBarsConfig() {
+  for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
+    int x = graph_x[ch] + 7, y = graph_y[ch] + 7;  // 15x15 square centered in the 30x30 slot
+    byte m = pgm_read_byte(&barMask[barCond[ch]]);
+    for (byte i = 0; i < 4; i++) {
+      int qx = x + (i & 1) * 8, qy = y + (i >> 1) * 8;
+      if ((m >> i) & 1) display.fillRect(qx, qy, 7, 7, WHITE);
+      else display.drawRect(qx, qy, 7, 7, WHITE);
+    }
+    if (ch == selected_menu) display.drawRect(x - 3, y - 3, 21, 21, WHITE);
   }
 }
 
