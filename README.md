@@ -8,7 +8,9 @@ EUCLID + XOX is a firmware for the 6 channel euclidean trigger sequencer designe
 
 - each channel can be programmed step by step (XOX) or with the euclidean formula, and both modes can be mixed;
 - the working state is saved by itself and comes back at power-up;
+- each channel can play only in some bars of a 4 bar cycle (BARS), so channels can take turns;
 - channels are muted from a dedicated mode, and a global cut restores the previous mix;
+- holding the encoder shows an arrow (next or previous setting), and it works the same on every channel;
 - the screen shows the state of each channel with a few consistent signs (rings, stickers, numbers, donuts);
 - 9 presets in the memory slots go from simple to complex and show how the module works.
 
@@ -33,6 +35,8 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 
 **Joaquín Contreras** redesigned the interface and the functions in this version:
 - XOX step programming per channel, combinable with the euclidean mode;
+- BARS, which chooses in which bars of a 4 bar cycle each channel plays;
+- hold arrows to move between settings, the same on every channel;
 - the autosaved working state;
 - mute mode with stickers, and the global cut that restores the previous mix;
 - 3-letter slot names, the saved/empty indicator, the overwrite notice and the hold line in S and L;
@@ -61,7 +65,9 @@ PROB is the setting before XOX. Each channel shows its probability as a donut th
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
 
 ### BARS (which bars play)
-BARS sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring. Each channel shows 4 boxes, one per bar: a filled box plays in that bar and an empty box is silent. Turn to go through the 16 combinations, ordered by number of filled boxes: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; older slots read as XXXX.
+BARS sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a square divided in 4, one quarter per bar in reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. A black line separates the quarters, so XXXX still shows the grid. The selected channel has a frame.
+
+Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMI or XOX) is the same in every bar; BARS only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before BARS read as XXXX.
 
 ### XOX (step programming)
 XOX is the last setting of the channel menu.
@@ -150,6 +156,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Sequencing**
 - XOX step programming mode per channel.
+- BARS: each channel plays in the bars of a 4 bar cycle that you choose (16 combinations).
 - MUTE was removed from the channel settings; channels are muted only from mute mode (M).
 - Mute mode on M, and a global cut that restores the previous mutes. The full-screen MUTE view was removed.
 
@@ -159,9 +166,13 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 - The 20 factory presets and the P menu were replaced by 9 presets stored in the slots, with a fixed channel order (see Presets).
 - 3-letter slot names, a saved/empty indicator, and an overwrite notice in S.
 
+**Interface**
+- Holding the encoder on a channel shows an arrow in the left column: from 0.3 s, release goes to the next setting; from 1 s, release goes to the previous one. It works the same on the channel menu and on every setting, including XOX.
+
 **Display**
 - EUCLID + XOX splash.
 - PROB shows each channel's probability as a donut, with a ring on the selected channel.
+- BARS shows each channel's bars as a square divided in 4.
 - Step and hit numbers at the center of the rings.
 - BPM in the empty left column.
 - SAVE, LOAD and TEMPO screens left-aligned with more line spacing.
