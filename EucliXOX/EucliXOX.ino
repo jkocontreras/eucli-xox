@@ -190,12 +190,13 @@ unsigned long cutTime = 0;
 bool muteMode = false;
 byte muteCursor = 0;
 
-// RNDM mode on RNDM: turn chooses a channel, click marks or unmarks it, long click leaves.
-// A marked channel changes its hits and offset at random at the start of every bar (16 clocks).
-// Not saved: at power-up no channel is marked.
+// RNDM mode on RNDM: timed random. Each channel has a COND-like combination of 4 bars (index into barMask):
+// in the bars that are filled, the channel changes its hits and offset at random at the start of the bar.
+// 0 = never (the default). Turn changes the combination of the channel, press and turn changes channel,
+// long click leaves. Not saved: at power-up every channel is at 0000.
 bool rndmMode = false;
 byte rndmCursor = 0;
-byte rndmMask = 0;
+byte rndmCond[6] = { 0, 0, 0, 0, 0, 0 };  // one per channel
 bool internalClock = false;
 bool showOverlay = false;
 
@@ -247,10 +248,6 @@ uint16_t offset_buf[MAX_CHANNELS];  // steps that sound per channel (bit j = ste
 #define stepOn(ch, j) ((offset_buf[ch] >> ((j) & 15)) & 1)
 
 // random assign
-const PROGMEM uint8_t hit_occ[MAX_CHANNELS] = { 5, 1, 20, 20, 40, 80 };
-const PROGMEM uint8_t off_occ[MAX_CHANNELS] = { 1, 3, 20, 30, 40, 20 };
-const PROGMEM uint8_t hit_rng_max[MAX_CHANNELS] = { 6, 5, 8, 4, 4, 6 };
-const PROGMEM uint8_t hit_rng_min[MAX_CHANNELS] = { 3, 2, 2, 1, 1, 1 };
 
 // Display Setup
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -497,18 +494,20 @@ void setupPinChangeInterrupts() {
   sei();
 }
 
-// Changes the hits and the offset of one channel at random (each with the probability of its channel).
-// It does not touch the mute: muting is up to the player.
+// Changes the hits and the offset of one channel at random, to any value that could be set by hand
+// (hits 1 to 16, offset 0 to 15) and different from the current one. It does not touch the mute.
 void Random_change(byte k) {
-  static constexpr uint8_t MAX_RANDOM = 100;
-  uint8_t random_value = random(1, MAX_RANDOM);
-  if (pgm_read_byte(&hit_occ[k]) >= random_value) {
-    xoxMask &= ~(1 << k);  // changing HITS returns the channel to eucli
-    currentConfig.hits[k] = random(pgm_read_byte(&hit_rng_min[k]), pgm_read_byte(&hit_rng_max[k]) + 1);
-  }
-  if (pgm_read_byte(&off_occ[k]) >= random_value) {
-    currentConfig.offset[k] = random(0, MAX_STEPS);
-  }
+  byte h;
+  do {
+    h = random(1, MAX_PATTERNS);
+  } while (h == currentConfig.hits[k]);
+  xoxMask &= ~(1 << k);  // changing HITS returns the channel to eucli
+  currentConfig.hits[k] = h;
+  byte o;
+  do {
+    o = random(0, MAX_STEPS);
+  } while (o == currentConfig.offset[k]);
+  currentConfig.offset[k] = o;
 }
 
 void onOverlayTimeout(EncoderButton &eb) {
@@ -599,12 +598,14 @@ void loop() {
     if (++barClock >= 16) {
       barClock = 0;
       barIdx = (barIdx + 1) & 3;
-      if (rndmMask) {  // start of a bar: the channels marked in RNDM change at random
-        for (byte k = 0; k < MAX_CHANNELS; k++) {
-          if ((rndmMask >> k) & 1) Random_change(k);
+      bool changed = false;
+      for (byte k = 0; k < MAX_CHANNELS; k++) {  // start of a bar: the channels whose RNDM combination has it filled
+        if ((pgm_read_byte(&barMask[rndmCond[k]]) >> barIdx) & 1) {
+          Random_change(k);
+          changed = true;
         }
-        updateRythm();
       }
+      if (changed) updateRythm();
     }
 
     // Output gate signal
@@ -811,11 +812,7 @@ void onEncoderClicked(EncoderButton &eb) {
         }
         break;
       case MENU_RNDM:
-        if (!rndmMode) {
-          rndmMode = true;  // enter RNDM mode
-        } else {
-          rndmMask ^= 1 << rndmCursor;  // mark or unmark the channel
-        }
+        rndmMode = true;  // enter RNDM mode (a click inside does nothing; hold leaves)
         break;
       case MENU_SAVE:
       case MENU_LOAD:
@@ -886,8 +883,8 @@ void onEncoderRotation(EncoderButton &eb) {
     muteCursor = (muteCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
     return;
   }
-  if (rndmMode) {  // in RNDM mode, turning moves the cursor one channel
-    rndmCursor = (rndmCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
+  if (rndmMode) {  // in RNDM mode, turning goes through the 16 combinations of the channel
+    rndmCond[rndmCursor] = (rndmCond[rndmCursor] + (increment > 0 ? 1 : 15)) & 15;
     return;
   }
 
@@ -941,6 +938,11 @@ void onEncoderPressedRotation(EncoderButton &eb) {
   if (increment == 0) return;
   markChange();
   disp_refresh = true;
+
+  if (rndmMode) {  // in RNDM mode, press and turn changes channel
+    rndmCursor = (rndmCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
+    return;
+  }
 
   int acceleratedIncrement = increment * increment;  // Squaring the increment for quicker adjustments
   if (increment < 0) acceleratedIncrement = -acceleratedIncrement;
@@ -1436,7 +1438,9 @@ void drawMainScreen() {
   if (selected_setting == SETTING_PROB) {
     drawProbabilityConfig();
   } else if (selected_setting == SETTING_COND) {
-    drawCondConfig();
+    drawBarSquares(barCond, selected_menu);
+  } else if (selected_menu == MENU_RNDM && selected_setting == SETTING_TOP_MENU && !showOverlay) {
+    drawBarSquares(rndmCond, rndmMode ? rndmCursor : -1);  // RNDM: the same squares as COND
   } else {
     drawStepDots(currentConfig);
     drawEuclideanRhythms();
@@ -1446,13 +1450,6 @@ void drawMainScreen() {
         display.drawCircle(graph_x[muteCursor] + 15, graph_y[muteCursor] + 15, 11, WHITE);  // thin ring around the sticker
       } else {
         drawSticker(muteCursor, false, 'M');  // outlined sticker over the shape
-      }
-    }
-    if (rndmMode) {  // RNDM mode cursor
-      if ((rndmMask >> rndmCursor) & 1) {
-        display.drawCircle(graph_x[rndmCursor] + 15, graph_y[rndmCursor] + 15, 11, WHITE);  // thin ring around the sticker
-      } else {
-        drawSticker(rndmCursor, false, 'R');  // outlined sticker over the shape
       }
     }
   }
@@ -1549,13 +1546,6 @@ void drawEuclideanRhythms() {
       }
     }
   }
-
-  // On RNDM (also inside its mode): channels marked for timed random get a sticker with an R
-  if (selected_menu == MENU_RNDM && !showOverlay) {
-    for (byte k = 0; k < MAX_CHANNELS; k++) {
-      if ((rndmMask >> k) & 1) drawSticker(k, true, 'R');
-    }
-  }
 }
 
 // Number at the center of a channel ring. Digits are 7 px tall, so drawn from y+12
@@ -1625,16 +1615,16 @@ void drawProbabilityConfig() {
 // top left = bar 1, top right = bar 2, bottom left = bar 3, bottom right = bar 4).
 // A filled quarter plays in that bar, an empty one is only outlined. A black line of 1 px separates
 // the quarters, so with everything filled the grid still shows. The selected channel gets a frame.
-void drawCondConfig() {
+void drawBarSquares(const byte *conds, int8_t selected) {
   for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
     int x = graph_x[ch] + 7, y = graph_y[ch] + 7;  // 15x15 square centered in the 30x30 slot
-    byte m = pgm_read_byte(&barMask[barCond[ch]]);
+    byte m = pgm_read_byte(&barMask[conds[ch]]);
     for (byte i = 0; i < 4; i++) {
       int qx = x + (i & 1) * 8, qy = y + (i >> 1) * 8;
       if ((m >> i) & 1) display.fillRect(qx, qy, 7, 7, WHITE);
       else display.drawRect(qx, qy, 7, 7, WHITE);
     }
-    if (ch == selected_menu) display.drawRect(x - 3, y - 3, 21, 21, WHITE);
+    if (ch == selected) display.drawRect(x - 3, y - 3, 21, 21, WHITE);
   }
 }
 

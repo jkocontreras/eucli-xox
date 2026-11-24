@@ -9,7 +9,7 @@ EUCLID + XOX is a firmware for the 6 channel euclidean trigger sequencer designe
 - each channel can be programmed step by step (XOX) or with the euclidean formula, and both modes can be mixed;
 - the working state is saved by itself and comes back at power-up;
 - each channel can play only in some bars of a 4 bar cycle (COND), so channels can take turns;
-- channels can be marked to change at random at the start of every bar (RNDM);
+- each channel can change its rhythm at random in the bars you choose of a 4 bar cycle (RNDM);
 - channels are muted from a dedicated mode, and a global cut restores the previous mix;
 - holding the encoder shows an arrow (next or previous setting), and it works the same on every channel;
 - the screen shows the state of each channel with a few consistent signs (rings, stickers, numbers, donuts);
@@ -37,7 +37,7 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 **Joaquín Contreras** redesigned the interface and the functions in this version:
 - XOX step programming per channel, combinable with the euclidean mode;
 - COND, which chooses in which bars of a 4 bar cycle each channel plays;
-- RNDM, a mode that marks channels to change at random at the start of every bar;
+- RNDM, which chooses in which bars of a 4 bar cycle each channel changes its rhythm at random;
 - hold arrows to move between settings, the same on every channel;
 - the autosaved working state;
 - mute mode with stickers, and the global cut that restores the previous mix;
@@ -67,7 +67,7 @@ This is the normal state of the module. Turning the encoder moves through the it
 | Right column | Left column | What it is for |
 |---|---|---|
 | **1HO** … **6HO** | the BPM, written vertically | The six channels. Each one has its own rhythm. |
-| **RNDM** | RNDM, inverted while you are inside the mode | Timed random: channels marked here change their hits and offset at random at the start of every bar. See RNDM. |
+| **RNDM** | RNDM, inverted while you are inside the mode | Timed random: each channel changes its hits and offset at random in the bars you choose. See RNDM. |
 | **S** | SAVE | Saves the current rhythms in one of 20 memory slots. |
 | **L** | LOAD | Loads rhythms saved in a slot. |
 | **INT** or **EXT** | \*CLK | Tempo and clock. INT is the internal clock and EXT is the external one. |
@@ -76,7 +76,7 @@ This is the normal state of the module. Turning the encoder moves through the it
 
 A click on an item of this menu does the following:
 - On **R** (RSET), it runs the reset right away.
-- On **RNDM**, it enters RNDM mode, where you choose a channel by turning and mark it with a click.
+- On **RNDM**, it enters RNDM mode, where turning goes through the 16 combinations of bars of a channel and press and turn changes channel.
 - On **S** (SAVE) and **L** (LOAD), it opens a window with the slot number. Turn to choose the slot and hold the encoder until the line under the text is full to save or load.
 - On **INT / EXT** (\*CLK), it opens a window with the BPM. Turn to change it and click to close.
 - On **M** (MUTE), it enters mute mode, where you choose a channel by turning and mute it with a click.
@@ -88,12 +88,12 @@ It is reached with a click on a channel. The name of the setting appears in the 
 While you are in a setting, turning does not move through the modes menu. It changes the value of that setting (hits, offset, probability, and so on). In XOX a click toggles the step under the cursor, so you leave XOX by holding the encoder until the right arrow appears and releasing (see Navigation with arrows). You are then back in the modes menu.
 
 #### Random in two places
-Both change the hits and the offset of a channel at random, always one channel at a time, and neither touches the mutes:
+Both change the hits and the offset of a channel at random, always one channel at a time. Hits go from 1 to 16 and offset from 0 to 15, the same range you can set by hand, and each change gives a value different from the current one. Neither touches the mutes:
 
 | Where | Name on screen | When it acts |
 |---|---|---|
 | Channel settings menu | **RAND** | immediately, each time you turn the encoder inside the RAND setting |
-| Modes menu | **RNDM** | at the start of every bar, on the channels you marked |
+| Modes menu | **RNDM** | at the start of the bars you choose for each channel |
 
 #### Press while turning
 - In the modes menu, on a channel, it changes the HITS of that channel directly, without entering its settings.
@@ -155,13 +155,14 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 
 ### RNDM (timed random)
 
-![RNDM mode: channels 2 and 5 marked with an R sticker, cursor on channel 3](images/rndm.png)
+![RNDM mode: square per channel, channel 3 selected](images/rndm.png)
 
-- Turn to **RNDM** in the modes menu. The marked channels show a white sticker with a black R.
-- Click on **RNDM** to enter the mode. The RNDM label on the left turns inverted (white strip, black letters). Turn to choose a channel and click to mark or unmark it. Hold to leave: the marks stay and the cursor jumps to channel 1.
-- A marked channel changes its hits and its offset at random at the start of every bar (16 clocks, one turn of the ring), each with the probability set for that channel in the firmware. In a given bar it can change the hits, the offset, both or none.
-- The marks stay active while you work on other items. The stickers are only drawn while the cursor is on RNDM.
-- The marks are not saved: at power-up no channel is marked.
+- RNDM shows the same square divided in 4 as COND, one per channel, with one quarter per bar of the 4 bar cycle. A filled quarter means that the channel changes its hits and offset at random at the start of that bar. An empty quarter means no change in that bar.
+- Turn to **RNDM** in the modes menu to see the squares. Click to enter the mode: the RNDM label on the left turns inverted (white strip, black letters) and the selected channel gets a frame.
+- Inside the mode, turn to go through the 16 combinations of the channel, from 0000 (never) to XXXX (every bar), in the same order as COND. Press and turn to change channel. Hold to leave: the cursor jumps to channel 1.
+- Examples: X000 changes the channel once every 4 bars, X0X0 in bars 1 and 3, XXXX in every bar.
+- The default is 0000 on every channel. The combinations stay active while you work on other items, and they are not saved: at power-up every channel is at 0000.
+- The change needs the clock to run (internal or external), since bars are counted with the clock pulses.
 - The random changes do not touch the mutes. A channel that was muted stays muted.
 
 ### Mute (M)
@@ -234,7 +235,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 **Sequencing**
 - XOX step programming mode per channel.
 - COND: each channel plays in the bars of a 4 bar cycle that you choose (16 combinations).
-- RNDM: a mode that marks channels to change their hits and offset at random at the start of every bar. It replaces the original RND (auto advance over 2 to 16 bars, all channels) and X (random change of all channels) items.
+- RNDM: each channel changes its hits and offset at random in the bars of a 4 bar cycle that you choose (16 combinations, as COND). It replaces the original RND (auto advance over 2 to 16 bars, all channels) and X (random change of all channels) items.
 - MUTE was removed from the channel settings; channels are muted only from mute mode (M).
 - Mute mode on M, and a global cut that restores the previous mutes. The full-screen MUTE view was removed.
 
