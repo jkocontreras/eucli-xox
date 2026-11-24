@@ -8,7 +8,7 @@ EUCLID + XOX is a firmware for the 6 channel euclidean trigger sequencer designe
 
 - each channel can be programmed step by step (XOX) or with the euclidean formula, and both modes can be mixed;
 - the working state is saved by itself and comes back at power-up;
-- each channel can play only in some bars of a 4 bar cycle (BARS), so channels can take turns;
+- each channel can play only in some bars of a 4 bar cycle (COND), so channels can take turns;
 - channels are muted from a dedicated mode, and a global cut restores the previous mix;
 - holding the encoder shows an arrow (next or previous setting), and it works the same on every channel;
 - the screen shows the state of each channel with a few consistent signs (rings, stickers, numbers, donuts);
@@ -35,7 +35,7 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 
 **Joaquín Contreras** redesigned the interface and the functions in this version:
 - XOX step programming per channel, combinable with the euclidean mode;
-- BARS, which chooses in which bars of a 4 bar cycle each channel plays;
+- COND, which chooses in which bars of a 4 bar cycle each channel plays;
 - hold arrows to move between settings, the same on every channel;
 - the autosaved working state;
 - mute mode with stickers, and the global cut that restores the previous mix;
@@ -54,7 +54,7 @@ The module has one encoder: a knob that you can **turn**, **press** (click) and 
 | | Modes menu | Channel settings menu |
 |---|---|---|
 | How you move | turning the encoder | clicking |
-| What it holds | what you work on: channels and functions of the whole module (RND, RAND, SAVE, LOAD, \*CLK, RSET, MUTE) | the settings of one channel (HITS, OFFS, LIMI, RESET, RAND, PROB, BARS, XOX) |
+| What it holds | what you work on: channels and functions of the whole module (RND, RAND, SAVE, LOAD, \*CLK, RSET, MUTE) | the settings of one channel (HITS, OFFS, LIMI, RESET, RAND, PROB, COND, XOX) |
 | How you enter | it is the normal state | a click on a channel |
 
 Both menus use the same two columns of the screen: the right column shows the letters of the item you are on, and the left column shows its name. Turning alone is enough to see SAVE or LOAD, for example; the click is only needed to open them.
@@ -81,7 +81,7 @@ A click on an item of this menu does the following:
 - On a **channel (1HO–6HO)**, it enters the channel settings menu.
 
 #### Channel settings menu (click)
-It is reached with a click on a channel. The name of the setting appears in the left column. The settings affect only that channel. Each click moves to the next one, in this order: **HITS, OFFS, LIMI, RESET, RAND, PROB, BARS, XOX**.
+It is reached with a click on a channel. The name of the setting appears in the left column. The settings affect only that channel. Each click moves to the next one, in this order: **HITS, OFFS, LIMI, RESET, RAND, PROB, COND, XOX**.
 
 While you are in a setting, turning does not move through the modes menu. It changes the value of that setting (hits, offset, probability, and so on). In XOX a click toggles the step under the cursor, so you leave XOX by holding the encoder until the right arrow appears and releasing (see Navigation with arrows). You are then back in the modes menu.
 
@@ -99,7 +99,7 @@ The three random functions change hits and offsets at random, and they differ in
 - In the channel settings menu, it changes to another channel and stays in the same setting. For example, in PROB you can go through the six channels and compare their probabilities.
 
 ### Channel menu
-On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → BARS → XOX**. From XOX you go back to the top by holding the encoder (→). Turning changes the value of the selected setting. Holding the encoder also moves between settings, see Navigation with arrows.
+On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → COND → XOX**. From XOX you go back to the top by holding the encoder (→). Turning changes the value of the selected setting. Holding the encoder also moves between settings, see Navigation with arrows.
 
 - Pressing and turning the encoder on a channel at the top level changes its HITS directly.
 - Channels are muted from **M**, not from the channel menu. Holding the encoder on a channel at the top level works like in its settings (see Navigation with arrows).
@@ -117,8 +117,8 @@ Holding the encoder on a channel, at its top level or inside any of its settings
 ![Holding for 0.3 s to 1 s: right arrow](images/hold-next.png) ![Holding over 1 s: left arrow](images/hold-back.png)
 
 - At the top level of a channel, → goes to HITS. There is no left arrow there.
-- In XOX, → returns to the channel menu and ← goes back to BARS.
-- The order of the settings is the one of the click: HITS, OFFS, LIMI, RESET, RANDOM, PROB, BARS, XOX.
+- In XOX, → returns to the channel menu and ← goes back to COND.
+- The order of the settings is the one of the click: HITS, OFFS, LIMI, RESET, RANDOM, PROB, COND, XOX.
 - Channels are not muted from here: mute is in **M**.
 - The times are the constants `LONG_CLICK_MS` (300) and `HOLD_BACK_MS` (1000) in the source. S, L and T use `LONG_CLICK_MS` for their long click.
 
@@ -127,12 +127,12 @@ PROB is the setting before XOX. Each channel shows its probability as a donut th
 
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
 
-### BARS (which bars play)
-BARS sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a square divided in 4, one quarter per bar in reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. A black line separates the quarters, so XXXX still shows the grid. The selected channel has a frame.
+### COND (which bars play)
+COND sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a square divided in 4, one quarter per bar in reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. A black line separates the quarters, so XXXX still shows the grid. The selected channel has a frame.
 
-![BARS: channel 2 selected with bars 1 and 3 filled](images/bars.png)
+![COND: channel 2 selected with bars 1 and 3 filled](images/cond.png)
 
-Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMI or XOX) is the same in every bar; BARS only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before BARS read as XXXX.
+Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMI or XOX) is the same in every bar; COND only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before COND read as XXXX.
 
 ### XOX (step programming)
 XOX is the last setting of the channel menu.
@@ -141,7 +141,7 @@ XOX is the last setting of the channel menu.
 
 - Turn to move the cursor, a filled diamond, through the steps up to the LIMI length.
 - Click to turn the step under the cursor on or off. The diamond blinks when the step is on.
-- Hold to leave, with the arrows (see Navigation with arrows): → returns to the channel menu and ← goes back to BARS. A short click only toggles the step.
+- Hold to leave, with the arrows (see Navigation with arrows): → returns to the channel menu and ← goes back to COND. A short click only toggles the step.
 
 The first edit switches the channel to XOX and starts from the euclidean pattern that was playing. OFFS rotates the drawn pattern. Changing HITS, or a random change of the hits, returns the channel to euclidean mode; HITS starts from the number of active steps of the drawing.
 
@@ -221,7 +221,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Sequencing**
 - XOX step programming mode per channel.
-- BARS: each channel plays in the bars of a 4 bar cycle that you choose (16 combinations).
+- COND: each channel plays in the bars of a 4 bar cycle that you choose (16 combinations).
 - MUTE was removed from the channel settings; channels are muted only from mute mode (M).
 - Mute mode on M, and a global cut that restores the previous mutes. The full-screen MUTE view was removed.
 
@@ -237,7 +237,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 **Display**
 - EUCLID + XOX splash.
 - PROB shows each channel's probability as a donut, with a ring on the selected channel.
-- BARS shows each channel's bars as a square divided in 4.
+- COND shows each channel's bars as a square divided in 4.
 - Step and hit numbers at the center of the rings.
 - BPM in the empty left column.
 - SAVE, LOAD and TEMPO screens left-aligned with more line spacing.

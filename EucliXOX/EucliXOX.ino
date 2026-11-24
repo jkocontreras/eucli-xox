@@ -126,7 +126,7 @@ enum Setting {
   SETTING_RESET,
   SETTING_RANDOM,
   SETTING_PROB,
-  SETTING_BARS,  // BARS: in which of 2 consecutive bars (16 clocks each) the channel plays
+  SETTING_COND,  // COND: in which of 2 consecutive bars (16 clocks each) the channel plays
   SETTING_XOX,  // XOX mode: turn moves the cursor, click toggles the step, hold leaves
   SETTING_LAST
 };
@@ -156,7 +156,7 @@ bool trg_in = false, old_trg_in = false, rst_in = false, old_rst_in = false;
 
 byte playing_step[6] = { 0 };
 
-// BARS: a bar is 16 clocks (one turn of the ring) and the cycle is 4 bars. Each channel plays a block of
+// COND: a bar is 16 clocks (one turn of the ring) and the cycle is 4 bars. Each channel plays a block of
 // consecutive bars. barCond = index into barMask, in the order shown when turning:
 // 0000, then by number of hits: X000 0X00 00X0 000X, XX00 0XX0 00XX X0X0 0X0X X00X, XXX0 0XXX XX0X X0XX, XXXX
 // (bit n of the mask = plays in bar n+1).
@@ -1147,7 +1147,7 @@ void handleSettingNavigation(int changeDirection) {
     case SETTING_PROB:  // Set probability
       currentConfig.probability[selected_menu] = (currentConfig.probability[selected_menu] + changeDirection + 101) % 101;
       break;
-    case SETTING_BARS:
+    case SETTING_COND:
       barCond[selected_menu] = (barCond[selected_menu] + (changeDirection > 0 ? 1 : 15)) & 15;
       break;
     case SETTING_XOX: {  // turning moves the cursor one step
@@ -1350,7 +1350,7 @@ void drawChannelEditMenu(TopMenu select_ch, Setting select_menu) {
     case SETTING_RESET: leftMenu('R', 'S', 'E', 'T'); break;
     case SETTING_RANDOM: leftMenu('R', 'A', 'N', 'D'); break;
     case SETTING_PROB: leftMenu('P', 'R', 'O', 'B'); break;
-    case SETTING_BARS: leftMenu('B', 'A', 'R', 'S'); break;
+    case SETTING_COND: leftMenu('C', 'O', 'N', 'D'); break;
     case SETTING_XOX: leftMenu('X', 'O', 'X', ' '); break;
     default: break;
   }
@@ -1461,8 +1461,8 @@ void drawMainScreen() {
 
   if (selected_setting == SETTING_PROB) {
     drawProbabilityConfig();
-  } else if (selected_setting == SETTING_BARS) {
-    drawBarsConfig();
+  } else if (selected_setting == SETTING_COND) {
+    drawCondConfig();
   } else {
     drawStepDots(currentConfig);
     drawEuclideanRhythms();
@@ -1633,11 +1633,11 @@ void drawProbabilityConfig() {
   }
 }
 
-// BARS: each channel shows a square divided in 4, one quarter per bar of the cycle (reading order:
+// COND: each channel shows a square divided in 4, one quarter per bar of the cycle (reading order:
 // top left = bar 1, top right = bar 2, bottom left = bar 3, bottom right = bar 4).
 // A filled quarter plays in that bar, an empty one is only outlined. A black line of 1 px separates
 // the quarters, so with everything filled the grid still shows. The selected channel gets a frame.
-void drawBarsConfig() {
+void drawCondConfig() {
   for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
     int x = graph_x[ch] + 7, y = graph_y[ch] + 7;  // 15x15 square centered in the 30x30 slot
     byte m = pgm_read_byte(&barMask[barCond[ch]]);
