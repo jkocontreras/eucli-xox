@@ -16,14 +16,14 @@ All the items are in one cyclic chain. A **click** goes to the next item and a *
 | **Long click** | Opens a closed item, runs RSET, and closes the mode that is open. |
 
 ### The chain
-The right column of the screen shows the selected channel as **1HO** … **6HO**: the number, then H (hits) and O (offset). On the first three items, the letter you are on is drawn inverted (white box, black letter). From LIMI on there is no initial to mark, and the name of the item is on the left.
+The right column of the screen shows the selected channel as **1HO** … **6HO**: the number, then H (hits) and O (offset). On the first three items, the letter you are on is drawn inverted (white box, black letter). From LIMT on there is no initial to mark, and the name of the item is on the left.
 
 | Item | Left column | Turning |
 |---|---|---|
 | **CH**, the channel (number inverted) | the BPM, written vertically | changes the channel |
 | **HITS** (H inverted) | HITS | changes the hits of the channel |
 | **OFFS** (O inverted) | OFFS | rotates the pattern |
-| **LIMI** | LIMI | changes the number of steps |
+| **LIMT** | LIMT | changes the number of steps |
 | **RESET** | RESET | sends the channel back to its first step |
 | **PROB** | PROB | changes the probability of the channel, see PROB |
 | **COND** | COND | goes through the 16 combinations of bars, see COND |
@@ -57,14 +57,14 @@ COND sets in which bars of a 4 bar cycle a channel plays. It is inspired by the 
 
 ![COND: channel 2 selected with bars 1 and 3 filled](images/cond.png)
 
-Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMI or XOX) is the same in every bar; COND only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before COND read as XXXX.
+Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMT or XOX) is the same in every bar; COND only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before COND read as XXXX.
 
 ## XOX (step programming)
 XOX is a closed item: a long click opens it on the selected channel.
 
 ![XOX step mode with the diamond cursor on channel 5](images/xox.png)
 
-- Turn to move the cursor, a filled diamond, through the steps up to the LIMI length.
+- Turn to move the cursor, a filled diamond, through the steps up to the LIMT length.
 - Click to turn the step under the cursor on or off. The diamond blinks when the step is on.
 - Press and turn to change channel. A long click leaves XOX and the cursor stays on the XOX item.
 
@@ -72,9 +72,9 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 
 ## Ring numbers
 
-![LIMI shows the number of steps at the center of each ring](images/limi-pol.png)
+![LIMT shows the number of steps at the center of each ring](images/limi-pol.png)
 
-- In LIMI, each ring shows its number of steps at the center instead of the polygon.
+- In LIMT, each ring shows its number of steps at the center instead of the polygon.
 - From 5 hits on, the ring shows the number of hits at the center, over the shape. In XOX it counts the active steps.
 
 ## RNDM (timed random)
@@ -135,13 +135,13 @@ All presets follow the same channel order, so one patch works with all of them:
 | 4 | DEM | 95 | XOX | Dembow, drawn step by step. |
 | 5 | CMB | 95 | XOX + eucli | Classic Colombian cumbia: kick, llamador and cowbell in eucli mode; maracas, güiro and bass drawn in XOX. |
 | 6 | BRK | 132 | XOX + eucli | Breakbeat: kick, snare, hi-hat and open hi-hat drawn in XOX; a tom (5 hits, 87 %) and a pluck (9 hits, 60 %) in eucli mode with probability, so both modes work together. |
-| 7 | TER | 90 | XOX | **LIMI:** all channels in 12 steps, a triple pulse with a bembé bell (7 in 12) on channel 5. |
+| 7 | TER | 90 | XOX | **LIMT:** all channels in 12 steps, a triple pulse with a bembé bell (7 in 12) on channel 5. |
 | 8 | POL | 120 | XOX | Polymeter: each channel has a different length (16, 7, 11, 9, 5, 13 steps), and channels 3 to 6 have probability, so the patterns drift apart and change over time. |
 | 9 | DIV | 120 | eucli | Clock divider, a utility: 16, 8, 4, 2 and 1 hits, and channel 6 with 4 hits on the offbeats. |
 
-The ring always draws 16 positions. A channel with LIMI below 16 uses only part of the circle, so in TER and POL the shapes look uneven while the rhythms are exact.
+The ring always draws 16 positions. A channel with LIMT below 16 uses only part of the circle, so in TER and POL the shapes look uneven while the rhythms are exact.
 
-In eucli mode the formula always works on 16 steps, and LIMI cuts the pattern. 3 hits with LIMI 8 is the first half of 3 in 16, so it does not give a tresillo. To get an exact euclidean rhythm of another length, draw it in XOX, as in TER and POL.
+In eucli mode the formula always works on 16 steps, and LIMT cuts the pattern. 3 hits with LIMT 8 is the first half of 3 in 16, so it does not give a tresillo. To get an exact euclidean rhythm of another length, draw it in XOX, as in TER and POL.
 
 The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm Generates Traditional Musical Rhythms" (2005).
 
@@ -191,6 +191,6 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Fixes**
 - The random functions no longer change the mutes (the original unmuted the channel on each random change). The RANDOM setting of each channel was removed: random is only in RNDM.
-- With LIMI above 16, the extra steps repeat the pattern instead of reading the next channel's data.
+- With LIMT above 16, the extra steps repeat the pattern instead of reading the next channel's data.
 - A channel with a single active step (euclidean or XOX) draws a line from the center of the ring to that step.
 - Steps are stored as 16-bit masks per channel and polygons are drawn without a point buffer, which frees RAM.

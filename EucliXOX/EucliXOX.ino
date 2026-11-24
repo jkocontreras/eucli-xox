@@ -319,7 +319,7 @@ char nameBuf[3];
 
 // Presets written once into slots 1 to 9 (only where the slot holds the initial rhythm). From simple to complex: EUC, BOS and CUB in eucli mode (16 steps, they show HITS
 // and OFFS); DEM, CMB and BRK drawn in XOX (CMB and BRK mix in eucli channels); TER (12 steps) and POL
-// (different lengths) show LIMI.
+// (different lengths) show LIMT.
 // Channel order: 1 kick, 2 snare/clap, 3 closed hat, 4 open hat/cymbal, 5 percussion, 6 percussion/accent.
 const StoredConfig presets[] PROGMEM = {
   // EUC: HITS: 2 to 7 hits, almost regular shapes
@@ -941,7 +941,7 @@ bool isXox(byte ch) {
   return xoxMask & (1 << ch);
 }
 
-// Cursor position within the channel length (LIMI)
+// Cursor position within the channel length (LIMT)
 byte xoxPos(byte ch) {
   byte len = currentConfig.limit[ch];
   if (len == 0 || len > MAX_STEPS) len = MAX_STEPS;
@@ -1220,7 +1220,7 @@ void rightGlyph(byte row, char c, bool inverted) {
 }
 
 // Right column: the channel number, H and O. The inverted one is the cursor (CH, HITS, OFFS).
-// From LIMI on there is no initial to mark: the name of the item is on the left.
+// From LIMT on there is no initial to mark: the name of the item is on the left.
 // RNDM and MUTE show only the number of the channel of their cursor; RSET and SYST show nothing.
 void drawRightColumn() {
   if (showOverlay || systMode) return;
@@ -1251,7 +1251,7 @@ void drawLeftColumn() {
     case NAV_CH: drawBpmColumn(); break;
     case NAV_HITS: leftName('H', 'I', 'T', 'S', false); break;
     case NAV_OFFS: leftName('O', 'F', 'F', 'S', false); break;
-    case NAV_LIMI: leftName('L', 'I', 'M', 'I', false); break;
+    case NAV_LIMI: leftName('L', 'I', 'M', 'T', false); break;
     case NAV_RESET: leftName('R', 'S', 'E', 'T', false); break;
     case NAV_PROB: leftName('P', 'R', 'O', 'B', false); break;
     case NAV_COND: leftName('C', 'O', 'N', 'D', false); break;
@@ -1421,7 +1421,7 @@ void drawEuclideanRhythms() {
   // draw hits line : 2~16hits if not muted
   // Drawn point to point without copying points to arrays (saves 34 bytes of RAM for the stack).
   for (byte k = 0; k < MAX_CHANNELS; k++) {
-    if (currentConfig.mute[k] || selected_setting == SETTING_LIMIT) continue;  // in LIMI the shape is not drawn
+    if (currentConfig.mute[k] || selected_setting == SETTING_LIMIT) continue;  // in LIMT the shape is not drawn
     int8_t first = -1, prev = -1;
     for (byte m = 0; m < MAX_STEPS; m++) {
       if (!stepOn(k, m)) continue;
@@ -1449,7 +1449,7 @@ void drawEuclideanRhythms() {
     }
   }
 
-  // Muted channel: filled white sticker with a black M (in LIMI the step count is shown instead)
+  // Muted channel: filled white sticker with a black M (in LIMT the step count is shown instead)
   for (byte k = 0; k < MAX_CHANNELS; k++) {
     if (currentConfig.mute[k] && selected_setting != SETTING_LIMIT && nav != NAV_RNDM && nav != NAV_COND)
       drawSticker(k, true, 'M');
@@ -1461,7 +1461,7 @@ void drawEuclideanRhythms() {
     int y_base = graph_y[ch] + 8;
 
 
-    // From 5 hits on, counting the corners gets slow: show the number at the center, as in LIMI.
+    // From 5 hits on, counting the corners gets slow: show the number at the center, as in LIMT.
     // In XOX it counts the active steps of the drawing.
     byte nHits = isXox(ch) ? __builtin_popcount(xoxPattern[ch]) : currentConfig.hits[ch];
     if (currentConfig.mute[ch] == 0 && nHits > 4 && selected_setting != SETTING_LIMIT && nav != NAV_RNDM && nav != NAV_COND) {
@@ -1544,6 +1544,11 @@ void drawProbabilityConfig() {
   }
 }
 
+// A field (width or xAdvance) of the glyph of a character in Font4x7.
+byte glyphField(char c, byte field) {
+  return pgm_read_byte((const byte *)&Font4x7Glyphs[c - 0x20] + field);
+}
+
 //  Display selected slot
 void drawSaveLoadSelection() {
   textAt(0, 0);
@@ -1557,7 +1562,11 @@ void drawSaveLoadSelection() {
     else display.drawCircle(32, 20, 4, WHITE);
     textAt(44, 14, 2);
     for (byte k = 0; k < 3; k++) display.print(nameEdit ? nameBuf[k] : nameChar(selected_slot, k));
-    if (nameEdit) display.drawFastHLine(44 + (nameEdit - 1) * 12, 31, 10, WHITE);  // letter being edited
+    if (nameEdit) {  // underline the letter being edited, using the real width of each letter
+      byte x = 44;
+      for (byte k = 0; k < nameEdit - 1; k++) x += 2 * glyphField(nameBuf[k], offsetof(GFXglyph, xAdvance));
+      display.drawFastHLine(x, 31, 2 * glyphField(nameBuf[nameEdit - 1], offsetof(GFXglyph, width)), WHITE);
+    }
     textAt(0, 35);
     if (nameEdit) display.print(F("NAME TURN CLICK"));
     else if (sysItem == 0) display.print(used ? F("CLICK TO OVERWRITE") : F("CLICK TO SAVE"));
