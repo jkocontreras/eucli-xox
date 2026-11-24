@@ -42,7 +42,7 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 
 **Joaquín Contreras** redesigned the interface and the functions in this version:
 - XOX step programming per channel, combinable with the euclidean mode;
-- COND, which chooses in which bars of a 4 bar cycle each channel plays;
+- COND, which chooses in which bars of a 4 bar cycle each channel plays, inspired by the trig conditions of Elektron sequencers (for example 1:4 or 3:4);
 - RNDM, which chooses in which bars of a 4 bar cycle each channel changes its rhythm at random;
 - the navigation: one cyclic chain with click, double click and long click, the cursor drawn as an inverted letter, and the SYST list for save, load, clock and tempo;
 - the autosaved working state;

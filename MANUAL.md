@@ -53,7 +53,7 @@ Each channel shows its probability as a donut that fills clockwise from the top,
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
 
 ## COND (which bars play)
-COND sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a small square divided in 4 (7 px) as a sticker at the center of its ring, so the rhythm stays visible behind it. The quarters follow the reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. The selected channel has a thin ring around its sticker.
+COND sets in which bars of a 4 bar cycle a channel plays. It is inspired by the trig conditions of Elektron sequencers. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a small square divided in 4 (7 px) as a sticker at the center of its ring, so the rhythm stays visible behind it. The quarters follow the reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. The selected channel has a thin ring around its sticker.
 
 ![COND: channel 2 selected with bars 1 and 3 filled](images/cond.png)
 
