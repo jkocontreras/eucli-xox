@@ -186,7 +186,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Clock and LEDs**
 - Steadier external BPM reading.
-- Dimmer LEDs: the LED flash lasts 5 ms and the screen redraws after it. Output triggers keep their original length (about 30 ms).
+- Less bright LEDs, for more visual comfort. The LEDs are lit for a shorter time (5 ms per flash) and the screen redraws after it. The output triggers keep their original length (about 30 ms).
 - If your encoder turns the wrong way, use the `_reversed` hex file, or compile with `-DENCODER_REVERSED`.
 
 **Fixes**
