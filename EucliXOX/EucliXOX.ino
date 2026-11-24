@@ -107,8 +107,7 @@ enum TopMenu {
   MENU_CH_4,
   MENU_CH_5,
   MENU_CH_6,
-  MENU_RANDOM_ADVANCE,
-  MENU_RAND,
+  MENU_RNDM,  // timed random: marked channels change at random at the start of every bar
   MENU_SAVE,
   MENU_LOAD,
   MENU_TEMPO,
@@ -190,6 +189,13 @@ unsigned long cutTime = 0;
 // Mute mode on M: turn chooses a channel, click mutes/unmutes, long click leaves
 bool muteMode = false;
 byte muteCursor = 0;
+
+// RNDM mode on RNDM: turn chooses a channel, click marks or unmarks it, long click leaves.
+// A marked channel changes its hits and offset at random at the start of every bar (16 clocks).
+// Not saved: at power-up no channel is marked.
+bool rndmMode = false;
+byte rndmCursor = 0;
+byte rndmMask = 0;
 bool internalClock = false;
 bool showOverlay = false;
 
@@ -243,14 +249,8 @@ uint16_t offset_buf[MAX_CHANNELS];  // steps that sound per channel (bit j = ste
 // random assign
 const PROGMEM uint8_t hit_occ[MAX_CHANNELS] = { 5, 1, 20, 20, 40, 80 };
 const PROGMEM uint8_t off_occ[MAX_CHANNELS] = { 1, 3, 20, 30, 40, 20 };
-const PROGMEM uint8_t mute_occ[MAX_CHANNELS] = { 0, 2, 20, 20, 20, 20 };
 const PROGMEM uint8_t hit_rng_max[MAX_CHANNELS] = { 6, 5, 8, 4, 4, 6 };
 const PROGMEM uint8_t hit_rng_min[MAX_CHANNELS] = { 3, 2, 2, 1, 1, 1 };
-const int bar_max[MAX_CHANNELS] PROGMEM = { 2, 4, 6, 8, 12, 16 };  // control
-
-byte bar_now = 1;
-byte bar_select = 1;  // ToDo: selected bar needs to be saved as well!
-byte step_cnt = 0;
 
 // Display Setup
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -497,25 +497,17 @@ void setupPinChangeInterrupts() {
   sei();
 }
 
-void Random_change(bool includeMute, bool allChannels, byte select_ch = 0) {
+// Changes the hits and the offset of one channel at random (each with the probability of its channel).
+// It does not touch the mute: muting is up to the player.
+void Random_change(byte k) {
   static constexpr uint8_t MAX_RANDOM = 100;
-  for (uint8_t k = 0; k < MAX_CHANNELS; k++) {
-    if (!allChannels && k != select_ch) continue;
-
-    uint8_t random_value = random(1, MAX_RANDOM);
-    if (pgm_read_byte(&hit_occ[k]) >= random_value) {
-      xoxMask &= ~(1 << k);  // changing HITS returns the channel to eucli
-      currentConfig.hits[k] = random(pgm_read_byte(&hit_rng_min[k]), pgm_read_byte(&hit_rng_max[k]) + 1);
-    }
-    if (pgm_read_byte(&off_occ[k]) >= random_value) {
-      currentConfig.offset[k] = random(0, MAX_STEPS);
-    }
-    cutMask = 0;
-    if (includeMute && k > 0) {
-      currentConfig.mute[k] = pgm_read_byte(&mute_occ[k]) >= random_value;
-    } else {
-      currentConfig.mute[k] = false;
-    }
+  uint8_t random_value = random(1, MAX_RANDOM);
+  if (pgm_read_byte(&hit_occ[k]) >= random_value) {
+    xoxMask &= ~(1 << k);  // changing HITS returns the channel to eucli
+    currentConfig.hits[k] = random(pgm_read_byte(&hit_rng_min[k]), pgm_read_byte(&hit_rng_max[k]) + 1);
+  }
+  if (pgm_read_byte(&off_occ[k]) >= random_value) {
+    currentConfig.offset[k] = random(0, MAX_STEPS);
   }
 }
 
@@ -607,25 +599,18 @@ void loop() {
     if (++barClock >= 16) {
       barClock = 0;
       barIdx = (barIdx + 1) & 3;
+      if (rndmMask) {  // start of a bar: the channels marked in RNDM change at random
+        for (byte k = 0; k < MAX_CHANNELS; k++) {
+          if ((rndmMask >> k) & 1) Random_change(k);
+        }
+        updateRythm();
+      }
     }
 
     // Output gate signal
     outputGateSignals();
 
     disp_refresh = true;  // Updates the display where the trigger was entered.
-
-    // Random advance mode (mode 6)
-    if (selected_menu == MENU_RANDOM_ADVANCE) {  // random mode setting
-      step_cnt++;
-      if (step_cnt >= 16) {
-        bar_now++;
-        step_cnt = 0;
-        if (bar_now > pgm_read_word(&bar_max[bar_select])) {
-          bar_now = 1;
-          Random_change(true, true);
-        }
-      }
-    }
   }
 
   if (gate_timer + TRIG_MS <= millis()) {  // turn the output triggers off
@@ -825,11 +810,12 @@ void onEncoderClicked(EncoderButton &eb) {
           cutMask = 0;       // the mix stored by the cut no longer applies
         }
         break;
-      case MENU_RAND:
-        Random_change(false, true);
-        break;
-      case MENU_RANDOM_ADVANCE:
-        Random_change(false, false);
+      case MENU_RNDM:
+        if (!rndmMode) {
+          rndmMode = true;  // enter RNDM mode
+        } else {
+          rndmMask ^= 1 << rndmCursor;  // mark or unmark the channel
+        }
         break;
       case MENU_SAVE:
       case MENU_LOAD:
@@ -877,6 +863,11 @@ void onEncoderLongClicked(EncoderButton &eb) {
       selected_menu = MENU_CH_1;
     }
     // outside the mode, the global cut is handled while held (in loop)
+  } else if (selected_menu == MENU_RNDM) {
+    if (rndmMode) {  // leave RNDM mode and jump to channel 1
+      rndmMode = false;
+      selected_menu = MENU_CH_1;
+    }
   } else if (selected_menu == MENU_TEMPO) {
     internalClock = !internalClock;  // Toggle the internal clock state
     showOverlay = true;              // Show overlay to indicate clock state change
@@ -893,6 +884,10 @@ void onEncoderRotation(EncoderButton &eb) {
 
   if (muteMode) {  // in mute mode, turning moves the cursor one channel
     muteCursor = (muteCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
+    return;
+  }
+  if (rndmMode) {  // in RNDM mode, turning moves the cursor one channel
+    rndmCursor = (rndmCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
     return;
   }
 
@@ -970,21 +965,6 @@ void onEncoderPressedRotation(EncoderButton &eb) {
           selected_menu = MENU_CH_1;
         }
       }
-      break;
-
-    case MENU_RAND:
-      // Check rotation direction to call appropriate random change function
-      if (increment > 0) {
-        Random_change(false, true);  // Rotate CW: Random change without mute
-      } else {
-        Random_change(true, true);  // Rotate CCW: Random change with mute
-      }
-      break;
-
-    case MENU_RANDOM_ADVANCE:
-      // Cycle length: index 0..5 of bar_max = 2, 4, 6, 8, 12, 16 bars.
-      // (The original went from 1 to 6: it never reached 2 bars and at 6 read outside the table.)
-      bar_select = (bar_select + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
       break;
 
     default:
@@ -1142,7 +1122,7 @@ void handleSettingNavigation(int changeDirection) {
       playing_step[selected_menu] = 0;
       break;
     case SETTING_RANDOM:  // Randomize channel
-      Random_change(false, false, selected_menu);
+      Random_change(selected_menu);
       break;
     case SETTING_PROB:  // Set probability
       currentConfig.probability[selected_menu] = (currentConfig.probability[selected_menu] + changeDirection + 101) % 101;
@@ -1319,12 +1299,11 @@ void drawTopMenuRight(TopMenu select_ch) {
     case MENU_CH_4: rightMenu('4', 'H', 'O', ' '); break;
     case MENU_CH_5: rightMenu('5', 'H', 'O', ' '); break;
     case MENU_CH_6: rightMenu('6', 'H', 'O', ' '); break;
-    case MENU_RANDOM_ADVANCE: rightMenu('R', 'N', 'D', ' '); break;
+    case MENU_RNDM: rightMenu('R', 'N', 'D', 'M'); break;
     case MENU_SAVE: rightMenu('S', ' ', ' ', ' '); break;
     case MENU_LOAD: rightMenu('L', ' ', ' ', ' '); break;
     case MENU_ALL_RESET: rightMenu('R', ' ', ' ', ' '); break;
     case MENU_ALL_MUTE: rightMenu('M', ' ', ' ', ' '); break;
-    case MENU_RAND: rightMenu('X', ' ', ' ', ' '); break;
     case MENU_TEMPO:
       if (internalClock) {
         rightMenu('I', 'N', 'T', ' ');
@@ -1374,7 +1353,14 @@ void drawModeMenu(TopMenu select_ch) {
       }
       break;
     case MENU_TEMPO: leftMenu('*', 'C', 'L', 'K'); break;
-    case MENU_RAND: leftMenu('R', 'A', 'N', 'D'); break;
+    case MENU_RNDM:
+      if (rndmMode) {  // inside RNDM mode: RNDM inverted on a white strip, as MUTE
+        display.fillRect(0, 28, 7, 37, WHITE);
+        display.setTextColor(BLACK);
+        verticalMenu(1, 30, 'R', 'N', 'D', 'M');
+        display.setTextColor(WHITE);
+      }
+      break;
     default: break;
   }
 }
@@ -1388,14 +1374,6 @@ void checkAndInitializeSettings() {
   initializeDefaultRhythms();  // EEPROM without a known format: basic rhythm in every slot
   EEPROM.update(AUTOSAVE_ADDRESS, 0);  // no valid autosave yet
   EEPROM.put(FIRMWARE_MAGIC_ADDRESS, FIRMWARE_MAGIC);
-}
-
-// Drawing random advance indicator
-void drawRandomModeAdvanceSquare(int bar_select, int bar_now, const int *bar_max) {  // Change to const int*
-  if (62 - pgm_read_word(&bar_max[bar_select]) * 2 >= 0 && 64 - bar_now * 2 >= 0) {
-    display.drawRoundRect(1, 62 - pgm_read_word(&bar_max[bar_select]) * 2, 6, pgm_read_word(&bar_max[bar_select]) * 2 + 2, 2, WHITE);
-    display.fillRect(1, 64 - bar_now * 2, 6, bar_now * 2, WHITE);
-  }
 }
 
 void drawSelectionIndicator(Setting select_menu) {
@@ -1453,10 +1431,6 @@ void drawMainScreen() {
   drawModeMenu(selected_menu);
   if (!showOverlay && !holdArrow && selected_setting == SETTING_TOP_MENU && selected_menu <= MENU_CH_6) drawBpmColumn();
 
-  if (selected_menu == MENU_RANDOM_ADVANCE) {
-    drawRandomModeAdvanceSquare(bar_select, bar_now, bar_max);
-  }
-
   drawSelectionIndicator(selected_setting);
 
   if (selected_setting == SETTING_PROB) {
@@ -1471,7 +1445,14 @@ void drawMainScreen() {
       if (currentConfig.mute[muteCursor]) {
         display.drawCircle(graph_x[muteCursor] + 15, graph_y[muteCursor] + 15, 11, WHITE);  // thin ring around the sticker
       } else {
-        drawMuteSticker(muteCursor, false);  // outlined sticker over the shape
+        drawSticker(muteCursor, false, 'M');  // outlined sticker over the shape
+      }
+    }
+    if (rndmMode) {  // RNDM mode cursor
+      if ((rndmMask >> rndmCursor) & 1) {
+        display.drawCircle(graph_x[rndmCursor] + 15, graph_y[rndmCursor] + 15, 11, WHITE);  // thin ring around the sticker
+      } else {
+        drawSticker(rndmCursor, false, 'R');  // outlined sticker over the shape
       }
     }
   }
@@ -1541,7 +1522,7 @@ void drawEuclideanRhythms() {
   // Muted channel: filled white sticker with a black M (in LIMI the step count is shown instead)
   for (byte k = 0; k < MAX_CHANNELS; k++) {
     if (currentConfig.mute[k] && selected_setting != SETTING_LIMIT)
-      drawMuteSticker(k, !((blinkMask >> k) & 1 && (millis() & 128)));  // parpadeo: relleno / borde
+      drawSticker(k, !((blinkMask >> k) & 1 && (millis() & 128)), 'M');  // parpadeo: relleno / borde
   }
 
   // draw channel info in edit mode, should be helpful while editing.
@@ -1568,6 +1549,13 @@ void drawEuclideanRhythms() {
       }
     }
   }
+
+  // On RNDM (also inside its mode): channels marked for timed random get a sticker with an R
+  if (selected_menu == MENU_RNDM && !showOverlay) {
+    for (byte k = 0; k < MAX_CHANNELS; k++) {
+      if ((rndmMask >> k) & 1) drawSticker(k, true, 'R');
+    }
+  }
 }
 
 // Number at the center of a channel ring. Digits are 7 px tall, so drawn from y+12
@@ -1579,13 +1567,13 @@ void drawRingNumber(byte ch, byte n) {
 
 // Mute sticker: 19 px circle at the ring center with an M (system font, 5 x 7 px).
 // filled = muted channel (white with a black M); otherwise white outline, black inside and a white M.
-void drawMuteSticker(byte ch, bool filled) {
+void drawSticker(byte ch, bool filled, char letter) {
   int cx = graph_x[ch] + 15, cy = graph_y[ch] + 15;
   display.fillCircle(cx, cy, 9, filled ? WHITE : BLACK);
   display.drawCircle(cx, cy, 9, WHITE);
   display.setTextColor(filled ? BLACK : WHITE);
   textAt(cx - 2, cy - 3);
-  display.print('M');
+  display.print(letter);
   display.setTextColor(WHITE);
 }
 
