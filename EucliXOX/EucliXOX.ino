@@ -123,7 +123,6 @@ enum Setting {
   SETTING_OFFSET,
   SETTING_LIMIT,
   SETTING_RESET,
-  SETTING_RANDOM,
   SETTING_PROB,
   SETTING_COND,  // COND: in which of 2 consecutive bars (16 clocks each) the channel plays
   SETTING_XOX,  // XOX mode: turn moves the cursor, click toggles the step, hold leaves
@@ -1123,9 +1122,6 @@ void handleSettingNavigation(int changeDirection) {
     case SETTING_RESET:  // Reset channel step
       playing_step[selected_menu] = 0;
       break;
-    case SETTING_RANDOM:  // Randomize channel
-      Random_change(selected_menu);
-      break;
     case SETTING_PROB:  // Set probability
       currentConfig.probability[selected_menu] = (currentConfig.probability[selected_menu] + changeDirection + 101) % 101;
       break;
@@ -1329,7 +1325,6 @@ void drawChannelEditMenu(TopMenu select_ch, Setting select_menu) {
     case SETTING_OFFSET: leftMenu('O', 'F', 'F', 'S'); break;
     case SETTING_LIMIT: leftMenu('L', 'I', 'M', 'I'); break;
     case SETTING_RESET: leftMenu('R', 'S', 'E', 'T'); break;
-    case SETTING_RANDOM: leftMenu('R', 'A', 'N', 'D'); break;
     case SETTING_PROB: leftMenu('P', 'R', 'O', 'B'); break;
     case SETTING_COND: leftMenu('C', 'O', 'N', 'D'); break;
     case SETTING_XOX: leftMenu('X', 'O', 'X', ' '); break;
@@ -1386,7 +1381,6 @@ void drawSelectionIndicator(Setting select_menu) {
 
   if (select_menu == SETTING_LIMIT) display.drawTriangle(12, 34, 12, 41, 7, 37, WHITE);
   else if (select_menu == SETTING_RESET) display.drawTriangle(12, 50, 12, 57, 7, 53, WHITE);
-  else if (select_menu == SETTING_RANDOM) display.drawTriangle(12, 58, 12, 65, 7, 61, WHITE);
   // PROB has no triangle: it fell off the screen (row 66 of 64)
 }
 
