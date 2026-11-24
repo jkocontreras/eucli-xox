@@ -67,6 +67,8 @@ Holding the encoder on a channel, at its top level or inside any of its settings
 | 0.3 s to 1 s | right (→) | next setting |
 | over 1 s | left (←) | previous setting |
 
+![Holding for 0.3 s to 1 s: right arrow](images/hold-next.png) ![Holding over 1 s: left arrow](images/hold-back.png)
+
 - At the top level of a channel, → goes to HITS. There is no left arrow there.
 - In XOX, → returns to the channel menu and ← goes back to BARS.
 - The order of the settings is the one of the click: HITS, OFFS, LIMI, RESET, RANDOM, PROB, BARS, XOX.
@@ -80,6 +82,8 @@ PROB is the setting before XOX. Each channel shows its probability as a donut th
 
 ### BARS (which bars play)
 BARS sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a square divided in 4, one quarter per bar in reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. A black line separates the quarters, so XXXX still shows the grid. The selected channel has a frame.
+
+![BARS: channel 2 selected with bars 1 and 3 filled](images/bars.png)
 
 Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMI or XOX) is the same in every bar; BARS only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before BARS read as XXXX.
 
