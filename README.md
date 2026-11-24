@@ -48,11 +48,58 @@ The screenshots below are rendered from the firmware's own drawing code, at 4× 
 
 ## Quick guide
 
-### Main menu
-Turn the encoder to move through the menu on the right column: channels **1–6**, **RND**, **X**, **S**, **L**, **T**, **R** and **M**.
+### How the menu works
+The module has one encoder: a knob that you can **turn**, **press** (click) and **press while turning**. It has two menus, and each one is used with a different gesture.
+
+| | Modes menu | Channel settings menu |
+|---|---|---|
+| How you move | turning the encoder | clicking |
+| What it holds | what you work on: channels and functions of the whole module (RND, RAND, SAVE, LOAD, \*CLK, RSET, MUTE) | the settings of one channel (HITS, OFFS, LIMI, RESET, RAND, PROB, BARS, XOX) |
+| How you enter | it is the normal state | a click on a channel |
+
+Both menus use the same two columns of the screen: the right column shows the letters of the item you are on, and the left column shows its name. Turning alone is enough to see SAVE or LOAD, for example; the click is only needed to open them.
+
+#### Modes menu (turn)
+This is the normal state of the module. Turning the encoder moves through the items, and after the last one it comes back to channel 1. In order:
+
+| Right column | Left column | What it is for |
+|---|---|---|
+| **1HO** … **6HO** | the BPM, written vertically | The six channels. Each one has its own rhythm. |
+| **RND** | a square that shows the bar count | Random advance: while the cursor is on RND, the rhythms change at random by themselves every 2 to 16 bars. Turning chooses how many bars. |
+| **X** | RAND | Random change: changes the rhythms at random each time you use it. Turning also makes a random change: clockwise leaves all channels unmuted, and counterclockwise may also mute channels 2 to 6 at random. |
+| **S** | SAVE | Saves the current rhythms in one of 20 memory slots. |
+| **L** | LOAD | Loads rhythms saved in a slot. |
+| **INT** or **EXT** | \*CLK | Tempo and clock. INT is the internal clock and EXT is the external one. |
+| **R** | RSET | Reset: sends all channels back to their first step. |
+| **M** | MUTE | Mute: silences channels. After M, the cursor returns to **1HO**. |
+
+A click on an item of this menu does the following:
+- On **RND**, **X** (RAND) and **R** (RSET), it runs the action right away (on RND and X, a random change; on R, the reset).
+- On **S** (SAVE) and **L** (LOAD), it opens a window with the slot number. Turn to choose the slot and hold the encoder until the line under the text is full to save or load.
+- On **INT / EXT** (\*CLK), it opens a window with the BPM. Turn to change it and click to close.
+- On **M** (MUTE), it enters mute mode, where you choose a channel by turning and mute it with a click.
+- On a **channel (1HO–6HO)**, it enters the channel settings menu.
+
+#### Channel settings menu (click)
+It is reached with a click on a channel. The name of the setting appears in the left column. The settings affect only that channel. Each click moves to the next one, in this order: **HITS, OFFS, LIMI, RESET, RAND, PROB, BARS, XOX**.
+
+While you are in a setting, turning does not move through the modes menu. It changes the value of that setting (hits, offset, probability, and so on). In XOX a click toggles the step under the cursor, so you leave XOX by holding the encoder until the right arrow appears and releasing (see Navigation with arrows). You are then back in the modes menu.
+
+#### Random in three places
+The three random functions change hits and offsets at random, and they differ in how many channels they affect and when they act:
+
+| Where | Name on screen | Affects | When |
+|---|---|---|---|
+| Modes menu | **X** (RAND) | all channels | each time you turn or click on X. Clockwise leaves all channels unmuted; counterclockwise may also mute channels 2 to 6 |
+| Modes menu | **RND** | all channels | by itself, at the end of a cycle of 2 to 16 bars, while the cursor stays on RND |
+| Channel settings menu | **RAND** | only that channel | each time you turn the encoder inside the RAND setting |
+
+#### Press while turning
+- In the modes menu, on a channel, it changes the HITS of that channel directly, without entering its settings.
+- In the channel settings menu, it changes to another channel and stays in the same setting. For example, in PROB you can go through the six channels and compare their probabilities.
 
 ### Channel menu
-On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → BARS → XOX**, then back to the top. Turning changes the value of the selected setting. Holding the encoder also moves between settings, see Navigation with arrows.
+On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → RANDOM → PROB → BARS → XOX**. From XOX you go back to the top by holding the encoder (→). Turning changes the value of the selected setting. Holding the encoder also moves between settings, see Navigation with arrows.
 
 - Pressing and turning the encoder on a channel at the top level changes its HITS directly.
 - Channels are muted from **M**, not from the channel menu. Holding the encoder on a channel at the top level works like in its settings (see Navigation with arrows).
