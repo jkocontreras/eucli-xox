@@ -50,6 +50,7 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 - 3-letter slot names, the saved/empty indicator and the overwrite notice;
 - 9 presets ordered for learning, with a fixed channel order, written into the slots (the factory presets and the P menu were removed);
 - numbers at the center of the rings, BPM in the left column, probability donuts, and the splash;
+- the screen font, `OLED4x7`: a 4x7 pixel uppercase font by Contrafonts, custom designed for this firmware (`fonts/OLED4x7-Regular.ttf`, `EucliXOX/Font4x7.h`);
 - fixes: LIMI above 16, the pixel noise from the stack reaching the display buffer, a steady external BPM reading, and shorter LED flashes.
 
 ## Flashing the hex file
