@@ -125,7 +125,7 @@ enum Setting {
 
 // Navigation: one cyclic chain of items. Click goes to the next, double click to the previous.
 // Long click opens the closed items (XOX, RNDM, MUTE, SYST), runs RSET, and closes an open mode.
-// Turning changes the number of the item (the channel in CH), and in the list from XOX on it chooses the item.
+// Turning changes the number of the item (the channel in CH); on the closed items it does nothing.
 // Press and turn changes channel.
 enum Nav : byte {
   NAV_CH,  // the selected channel (turn changes channel)
@@ -904,11 +904,8 @@ void onEncoderRotation(EncoderButton &eb) {
     changeChannel(increment);
   } else if (nav < NAV_XOX || xoxMode) {
     handleSettingNavigation(acceleratedIncrement);  // the value of the setting (in XOX, the cursor)
-  } else {  // the list from XOX on: turning chooses the item
-    const byte n = NAV_LAST - NAV_XOX;
-    nav = NAV_XOX + (nav - NAV_XOX + (increment > 0 ? 1 : n - 1)) % n;
-    syncNav();
   }
+  // on the closed items (XOX, RNDM, MUTE, RSET, SYST) there is no number: turning does nothing
 }
 
 void onEncoderPressedRotation(EncoderButton &eb) {

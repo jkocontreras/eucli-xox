@@ -57,7 +57,7 @@ All the items are in one cyclic chain. A **click** goes to the next item and a *
 
 | Gesture | What it does |
 |---|---|
-| **Turn** | Changes the number of the item you are on (on the first item, the channel). From XOX on, it chooses the item. |
+| **Turn** | Changes the number of the item you are on (on the first item, the channel). On the items from XOX on there is no number, and turning does nothing. |
 | **Press and turn** | Changes channel, on any item. |
 | **Click** | Next item. |
 | **Double click** | Previous item. |
@@ -75,13 +75,13 @@ The right column of the screen shows the selected channel as **1HO** … **6HO**
 | **RESET** | RESET | sends the channel back to its first step |
 | **PROB** | PROB | changes the probability of the channel, see PROB |
 | **COND** | COND | goes through the 16 combinations of bars, see COND |
-| **XOX** (closed) | XOX | chooses the item |
-| **RNDM** (closed) | RNDM | chooses the item |
-| **MUTE** (closed) | MUTE | chooses the item |
-| **RSET** | RSET | chooses the item |
-| **SYST** (closed) | SYST | chooses the item |
+| **XOX** (closed) | XOX | nothing |
+| **RNDM** (closed) | RNDM | nothing |
+| **MUTE** (closed) | MUTE | nothing |
+| **RSET** (closed) | RSET | nothing |
+| **SYST** (closed) | SYST | nothing |
 
-From XOX on there is no number to change, so turning chooses the item of this part of the chain (XOX, RNDM, MUTE, RSET, SYST), and a click also goes to the next one.
+From XOX on there is no number to change. Turning does nothing there, and the chain is moved only with clicks and double clicks. To change the channel on those items, press and turn.
 
 #### Closed items
 The items that open with a long click have their name inverted on the left (white strip, black letters). RSET is also drawn inverted: a long click runs the reset of all channels and stays in the chain.
