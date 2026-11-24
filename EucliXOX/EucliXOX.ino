@@ -797,7 +797,10 @@ void onEncoderClicked(EncoderButton &eb) {
       for (byte k = 0; k < 3; k++) nameBuf[k] = used ? nameChar(selected_slot, k) : '-';
       nameEdit = 1;
     } else {  // LOAD: confirm; CLOCK and BPM: close
-      if (sysItem == 1) loadFromEEPROM(selected_slot);
+      if (sysItem == 1) {
+        loadFromEEPROM(selected_slot);
+        leaveSyst();  // after loading, go straight to the first item to play
+      }
       showOverlay = false;
     }
   } else if (xoxMode) {
@@ -1156,12 +1159,20 @@ char nameChar(byte slot, byte k) {
   return strchr_P(NAME_CHARS, c) && c ? c : '-';
 }
 
+// Closes SYST and puts the cursor on the first item of the chain.
+void leaveSyst() {
+  systMode = false;
+  nav = NAV_CH;
+  syncNav();
+}
+
 void finishName() {
   if (nameEdit) {
     for (byte k = 0; k < 3; k++) EEPROM.update(NAMES_ADDRESS + selected_slot * 3 + k, nameBuf[k]);
     nameEdit = 0;
   }
   showOverlay = false;
+  leaveSyst();  // after saving, go straight to the first item to play
 }
 
 void initializeDefaultRhythms() {

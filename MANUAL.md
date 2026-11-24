@@ -103,7 +103,7 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 ![Load screen with slot number, saved indicator and name](images/load.png) ![Naming a slot after saving](images/save-name.png)
 
 - **Working state:** the current state is saved automatically 10 seconds after the last encoder action, and it comes back at power-up. It is written one byte per loop pass, so playback keeps running while it saves.
-- **SAVE and LOAD** are entries of **SYST**. Open SYST with a long click, turn to choose SAVE or LOAD and click to open it. Turn to choose one of 20 slots and click again to confirm: it saves or loads. A long click leaves without confirming.
+- **SAVE and LOAD** are entries of **SYST**. Open SYST with a long click, turn to choose SAVE or LOAD and click to open it. Turn to choose one of 20 slots and click again to confirm: it saves or loads. A long click leaves without confirming. After LOAD, and after closing the name in SAVE, SYST closes and the cursor goes to the first item (CH), ready to play.
 
 ![The SYST list](images/syst.png)
 
