@@ -318,7 +318,7 @@ byte nameEdit = 0;  // 0 = not naming; 1..3 = letter being edited
 char nameBuf[3];
 
 // Presets written once into slots 1 to 9 (only where the slot holds the initial rhythm). From simple to complex: EUC, BOS and CUB in eucli mode (16 steps, they show HITS
-// and OFFS); DEM, CMB and BRK drawn in XOX (CMB and BRK mix in eucli channels); TER (12 steps) and POL
+// and OFFS); DEM and BRK drawn in XOX (BRK mixes eucli channels), CMB mostly in eucli; TER (12 steps) and POL
 // (different lengths) show LIMT.
 // Channel order: 1 kick, 2 snare/clap, 3 closed hat, 4 open hat/cymbal, 5 percussion, 6 percussion/accent.
 const StoredConfig presets[] PROGMEM = {
@@ -330,8 +330,8 @@ const StoredConfig presets[] PROGMEM = {
   { { 4, 6, 8, 4, 10, 2 }, { 0, 5, 0, 2, 3, 0 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x00, { 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000 }, 100, 2 },
   // DEM: dembow
   { { 4, 4, 8, 4, 6, 4 }, { 0, 0, 0, 0, 0, 0 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x3F, { 0x1111, 0x4848, 0x5555, 0x4444, 0x4949, 0x4141 }, 95, 2 },
-  // CMB: classic Colombian cumbia (by JKO), channel 5 is a cowbell
-  { { 4, 4, 8, 12, 4, 3 }, { 0, 14, 0, 0, 0, 6 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x2C, { 0x0101, 0x4444, 0x5555, 0xDDDD, 0x40C0, 0x0181 }, 95, 2 },
+  // CMB: classic Colombian cumbia (by JKO): channels 1 to 5 in eucli mode with hand picked offsets, channel 6 drawn in XOX
+  { { 4, 2, 12, 4, 4, 3 }, { 4, 14, 15, 12, 0, 10 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 100, 100 }, 0, 0x20, { 0x0101, 0x4444, 0x5555, 0xDDDD, 0x40C0, 0x0181 }, 95, 2 },
   // BRK: breakbeat by JKO
   { { 4, 2, 3, 4, 5, 9 }, { 0, 10, 0, 10, 11, 4 }, { 16, 16, 16, 16, 16, 16 }, { 100, 100, 100, 100, 87, 60 }, 0, 0x0F, { 0x0103, 0x8100, 0x05A5, 0x1D11, 0x4208, 0x0241 }, 132, 2 },
   // TER: 12 steps, triple pulse with a bembé bell

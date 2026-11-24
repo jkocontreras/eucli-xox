@@ -133,7 +133,7 @@ All presets follow the same channel order, so one patch works with all of them:
 | 2 | BOS | 120 | eucli | **OFFS:** the bossa nova clave (5 in 16) and the samba pattern (7 in 16) are euclidean rhythms rotated with OFFS. |
 | 3 | CUB | 100 | eucli | Traditional rhythms that are euclidean: tresillo (6 in 16, OFFS 5) and cinquillo (10 in 16, OFFS 3). |
 | 4 | DEM | 95 | XOX | Dembow, drawn step by step. |
-| 5 | CMB | 95 | XOX + eucli | Classic Colombian cumbia: kick, llamador and cowbell in eucli mode; maracas, güiro and bass drawn in XOX. |
+| 5 | CMB | 95 | eucli + XOX | Classic Colombian cumbia: channels 1 to 5 in eucli mode, with the hits and offsets chosen by hand, and channel 6 drawn in XOX. |
 | 6 | BRK | 132 | XOX + eucli | Breakbeat: kick, snare, hi-hat and open hi-hat drawn in XOX; a tom (5 hits, 87 %) and a pluck (9 hits, 60 %) in eucli mode with probability, so both modes work together. |
 | 7 | TER | 90 | XOX | **LIMT:** all channels in 12 steps, a triple pulse with a bembé bell (7 in 12) on channel 5. |
 | 8 | POL | 120 | XOX | Polymeter: each channel has a different length (16, 7, 11, 9, 5, 13 steps), and channels 3 to 6 have probability, so the patterns drift apart and change over time. |
