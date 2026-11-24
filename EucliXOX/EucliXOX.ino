@@ -1357,14 +1357,14 @@ void drawOverlay() {
   else drawTempo();
 }
 
-// SYST list: the four entries, the selected one inverted, with their current value
+// SYST list: the four entries in the normal text size, the selected one inverted, with their current value
 void drawSystList() {
   for (byte i = 0; i < 4; i++) {
-    int y = 2 + i * 16;
+    int y = 9 + i * 12;
     bool sel = i == sysItem;
-    if (sel) display.fillRect(14, y - 1, 100, 15, WHITE);
+    if (sel) display.fillRect(8, y - 2, 112, 11, WHITE);
     display.setTextColor(sel ? BLACK : WHITE);
-    textAt(20, y, 2);
+    textAt(14, y);
     switch (i) {
       case 0: display.print(F("SAVE")); break;
       case 1: display.print(F("LOAD")); break;
@@ -1372,7 +1372,7 @@ void drawSystList() {
       case 3: display.print(F("BPM")); break;
     }
     if (i >= 2) {
-      textAt(84, y + 4);
+      textAt(86, y);
       if (i == 2) display.print(internalClock ? F("INT") : F("EXT"));
       else display.print(internalClock ? tempo : externalBPM);
     }
