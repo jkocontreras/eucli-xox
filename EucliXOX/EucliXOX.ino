@@ -1315,14 +1315,12 @@ void drawMainScreen() {
 
   if (selected_setting == SETTING_PROB) {
     drawProbabilityConfig();
-  } else if (selected_setting == SETTING_COND) {
-    drawBarSquares(barCond, selected_menu);
-  } else if (nav == NAV_RNDM && !showOverlay) {
-    drawBarSquares(rndmCond, rndmMode ? rndmCursor : -1);  // RNDM: the same squares as COND
   } else {
     drawStepDots(currentConfig);
     drawEuclideanRhythms();
     drawXoxCursor();
+    if (nav == NAV_COND) drawBarStickers(barCond, selected_menu);  // COND and RNDM: a small square on each ring
+    else if (nav == NAV_RNDM && !showOverlay) drawBarStickers(rndmCond, rndmMode ? rndmCursor : -1);
     if (muteMode) {  // mute mode cursor
       if (currentConfig.mute[muteCursor]) {
         display.drawCircle(graph_x[muteCursor] + 15, graph_y[muteCursor] + 15, 11, WHITE);  // thin ring around the sticker
@@ -1330,6 +1328,28 @@ void drawMainScreen() {
         drawSticker(muteCursor, false, 'M');  // outlined sticker over the shape
       }
     }
+  }
+}
+
+// COND and RNDM stickers: a square divided in 4, one quarter per bar of the 4 bar cycle (reading order:
+// top left = bar 1, top right = bar 2, bottom left = bar 3, bottom right = bar 4). A filled quarter is a bar
+// where the channel plays (COND) or changes at random (RNDM); an empty one is only outlined.
+// It is small (11 px) and sits at the center of each ring over a black backing, so that the rhythm stays
+// visible behind. The channel of the cursor gets a thin ring, like the mute cursor.
+#ifndef STICKER_Q
+#define STICKER_Q 3  // side of a quarter in pixels: the sticker is 2 * STICKER_Q + 1 pixels wide (3 = 7 px, 4 = 9 px, 5 = 11 px)
+#endif
+void drawBarStickers(const byte *conds, int8_t selected) {
+  for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
+    int cx = graph_x[ch] + 15, cy = graph_y[ch] + 15;
+    display.fillRect(cx - STICKER_Q - 1, cy - STICKER_Q - 1, 2 * STICKER_Q + 3, 2 * STICKER_Q + 3, BLACK);
+    byte m = pgm_read_byte(&barMask[conds[ch]]);
+    for (byte i = 0; i < 4; i++) {
+      int qx = cx - STICKER_Q + (i & 1) * (STICKER_Q + 1), qy = cy - STICKER_Q + (i >> 1) * (STICKER_Q + 1);
+      if ((m >> i) & 1) display.fillRect(qx, qy, STICKER_Q, STICKER_Q, WHITE);
+      else display.drawRect(qx, qy, STICKER_Q, STICKER_Q, WHITE);
+    }
+    if (ch == selected) display.drawCircle(cx, cy, STICKER_Q + 6, WHITE);
   }
 }
 
@@ -1424,7 +1444,7 @@ void drawEuclideanRhythms() {
 
   // Muted channel: filled white sticker with a black M (in LIMI the step count is shown instead)
   for (byte k = 0; k < MAX_CHANNELS; k++) {
-    if (currentConfig.mute[k] && selected_setting != SETTING_LIMIT)
+    if (currentConfig.mute[k] && selected_setting != SETTING_LIMIT && nav != NAV_RNDM && nav != NAV_COND)
       drawSticker(k, true, 'M');
   }
 
@@ -1437,7 +1457,7 @@ void drawEuclideanRhythms() {
     // From 5 hits on, counting the corners gets slow: show the number at the center, as in LIMI.
     // In XOX it counts the active steps of the drawing.
     byte nHits = isXox(ch) ? __builtin_popcount(xoxPattern[ch]) : currentConfig.hits[ch];
-    if (currentConfig.mute[ch] == 0 && nHits > 4 && selected_setting != SETTING_LIMIT ) {
+    if (currentConfig.mute[ch] == 0 && nHits > 4 && selected_setting != SETTING_LIMIT && nav != NAV_RNDM && nav != NAV_COND) {
       drawRingNumber(ch, nHits);
     }
 
@@ -1514,23 +1534,6 @@ void drawProbabilityConfig() {
     if (ch == selected_menu) display.drawCircle(cx, cy, 16, WHITE);  // selected channel
     numAt(cx - (p >= 100 ? 9 : p >= 10 ? 6 : 3), cy - 3);
     display.print(p);
-  }
-}
-
-// COND: each channel shows a square divided in 4, one quarter per bar of the cycle (reading order:
-// top left = bar 1, top right = bar 2, bottom left = bar 3, bottom right = bar 4).
-// A filled quarter plays in that bar, an empty one is only outlined. A black line of 1 px separates
-// the quarters, so with everything filled the grid still shows. The selected channel gets a frame.
-void drawBarSquares(const byte *conds, int8_t selected) {
-  for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
-    int x = graph_x[ch] + 7, y = graph_y[ch] + 7;  // 15x15 square centered in the 30x30 slot
-    byte m = pgm_read_byte(&barMask[conds[ch]]);
-    for (byte i = 0; i < 4; i++) {
-      int qx = x + (i & 1) * 8, qy = y + (i >> 1) * 8;
-      if ((m >> i) & 1) display.fillRect(qx, qy, 7, 7, WHITE);
-      else display.drawRect(qx, qy, 7, 7, WHITE);
-    }
-    if (ch == selected) display.drawRect(x - 3, y - 3, 21, 21, WHITE);
   }
 }
 

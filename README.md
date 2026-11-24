@@ -101,7 +101,7 @@ Each channel shows its probability as a donut that fills clockwise from the top,
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
 
 ### COND (which bars play)
-COND sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a square divided in 4, one quarter per bar in reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. A black line separates the quarters, so XXXX still shows the grid. The selected channel has a frame.
+COND sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a small square divided in 4 (7 px) as a sticker at the center of its ring, so the rhythm stays visible behind it. The quarters follow the reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. The selected channel has a thin ring around its sticker.
 
 ![COND: channel 2 selected with bars 1 and 3 filled](images/cond.png)
 
@@ -127,10 +127,10 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 
 ### RNDM (timed random)
 
-![RNDM mode: square per channel, channel 3 selected](images/rndm.png)
+![RNDM mode: a small square on each ring, cursor on channel 3](images/rndm.png)
 
-- RNDM shows the same square divided in 4 as COND, one per channel, with one quarter per bar of the 4 bar cycle. A filled quarter means that the channel changes its hits and offset at random at the start of that bar. An empty quarter means no change in that bar.
-- Go to **RNDM** in the chain to see the squares. A long click opens the mode: the selected channel gets a frame and its number appears inverted in the right column.
+- RNDM shows the same small square as COND, as a sticker at the center of each ring, with one quarter per bar of the 4 bar cycle. A filled quarter means that the channel changes its hits and offset at random at the start of that bar. An empty quarter means no change in that bar.
+- Go to **RNDM** in the chain to see the squares. A long click opens the mode: the channel of the cursor gets a thin ring around its sticker and its number appears inverted in the right column.
 - Inside the mode, turn to go through the 16 combinations of the channel, from 0000 (never) to XXXX (every bar), in the same order as COND. Press and turn to change channel. A long click leaves the mode.
 - Examples: X000 changes the channel once every 4 bars, X0X0 in bars 1 and 3, XXXX in every bar.
 - The default is 0000 on every channel. The combinations stay active while you work on other items, and they are not saved: at power-up every channel is at 0000.
@@ -225,7 +225,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 **Display**
 - EUCLID + XOX splash.
 - PROB shows each channel's probability as a donut, with a ring on the selected channel.
-- COND shows each channel's bars as a square divided in 4.
+- COND shows each channel's bars as a small square divided in 4, as a sticker on the ring.
 - Step and hit numbers at the center of the rings.
 - BPM in the left column while the chain is on CH.
 - SAVE, LOAD, CLOCK and BPM screens left-aligned with more line spacing.
