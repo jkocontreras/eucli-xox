@@ -201,7 +201,7 @@ byte muteCursor = 0;
 // RNDM mode on RNDM: timed random. Each channel has a COND-like combination of 4 bars (index into barMask):
 // in the bars that are filled, the channel changes its hits and offset at random at the start of the bar.
 // 0 = never (the default). Turn changes the combination of the channel, press and turn changes channel,
-// long click leaves. Not saved: at power-up every channel is at 0000.
+// long click leaves. Saved in the memory slots and in the autosave, as COND.
 bool rndmMode = false;
 byte rndmCursor = 0;
 byte rndmCond[6] = { 0, 0, 0, 0, 0, 0 };  // one per channel
@@ -1021,10 +1021,17 @@ bool loadAutosave() {
 
 void packConfig(StoredConfig &s) {
   memcpy(s.hits, currentConfig.hits, MAX_CHANNELS);
-  for (byte c = 0; c < MAX_CHANNELS; c++) s.offset[c] |= (barCond[c] ^ BAR_ALL) << 4;
   memcpy(s.offset, currentConfig.offset, MAX_CHANNELS);
   memcpy(s.limit, currentConfig.limit, MAX_CHANNELS);
   memcpy(s.probability, currentConfig.probability, MAX_CHANNELS);
+  // COND goes in the high nibble of offset (XORed with 15, so slots without it read as XXXX).
+  // RNDM (4 bits per channel) goes in the 3 free high bits of hits and the free top bit of probability
+  // (slots without it read as 0000, never).
+  for (byte c = 0; c < MAX_CHANNELS; c++) {
+    s.offset[c] |= (barCond[c] ^ BAR_ALL) << 4;
+    s.hits[c] |= (rndmCond[c] & 7) << 5;
+    s.probability[c] |= (rndmCond[c] >> 3) << 7;
+  }
   s.muteMask = 0;
   for (byte c = 0; c < MAX_CHANNELS; c++) {
     if (currentConfig.mute[c]) s.muteMask |= 1 << c;
@@ -1038,10 +1045,11 @@ void packConfig(StoredConfig &s) {
 void unpackConfig(const StoredConfig &s) {
   for (byte c = 0; c < MAX_CHANNELS; c++) {
     barCond[c] = (s.offset[c] >> 4) ^ BAR_ALL;
-    currentConfig.hits[c] = s.hits[c] < MAX_PATTERNS ? s.hits[c] : 0;
+    rndmCond[c] = (s.hits[c] >> 5) | ((s.probability[c] >> 7) << 3);
+    currentConfig.hits[c] = (s.hits[c] & 31) < MAX_PATTERNS ? (s.hits[c] & 31) : 0;
     currentConfig.offset[c] = (s.offset[c] & 15) % MAX_STEPS;
     currentConfig.limit[c] = s.limit[c];
-    currentConfig.probability[c] = s.probability[c] <= 100 ? s.probability[c] : 100;
+    currentConfig.probability[c] = (s.probability[c] & 127) <= 100 ? (s.probability[c] & 127) : 100;
     currentConfig.mute[c] = s.muteMask & (1 << c);
   }
   cutMask = 0;

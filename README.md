@@ -133,7 +133,7 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 - Go to **RNDM** in the chain to see the squares. A long click opens the mode: the channel of the cursor gets a thin ring around its sticker and its number appears inverted in the right column.
 - Inside the mode, turn to go through the 16 combinations of the channel, from 0000 (never) to XXXX (every bar), in the same order as COND. Press and turn to change channel. A long click leaves the mode.
 - Examples: X000 changes the channel once every 4 bars, X0X0 in bars 1 and 3, XXXX in every bar.
-- The default is 0000 on every channel. The combinations stay active while you work on other items, and they are not saved: at power-up every channel is at 0000.
+- The default is 0000 on every channel. The combinations stay active while you work on other items. They are saved in the memory slots and in the autosave, like COND: at power-up they come back as they were, and a slot saved before RNDM existed reads as 0000 on every channel.
 - The change needs the clock to run (internal or external), since bars are counted with the clock pulses.
 - The random changes do not touch the mutes. A channel that was muted stays muted.
 
