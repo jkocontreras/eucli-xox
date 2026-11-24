@@ -169,7 +169,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 - 3-letter slot names, a saved/empty indicator, and an overwrite notice in SAVE.
 
 **Interface**
-- The screen uses OLED4x7, a 4x7 pixel uppercase font by Contrafonts, custom designed for this firmware (`EucliXOX/Font4x7.h`, source font in `fonts/OLED4x7-Regular.ttf`), so all texts are uppercase.
+- The screen uses OLED4x7, a 4x7 pixel uppercase font by Contrafonts, custom designed for this firmware (`EucliXOX/Font4x7.h`, source font in `fonts/OLED4x7-Regular.ttf`, SIL Open Font License 1.1), so all texts are uppercase.
 - One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (XOX, RNDM, MUTE, SYST) or runs RSET. The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
 - Turning changes the number of the item. Press and turn changes channel on any item.
 - SYST groups SAVE, LOAD, CLOCK and BPM. SAVE and LOAD confirm with a click instead of holding the encoder.
