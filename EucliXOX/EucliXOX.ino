@@ -38,6 +38,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
+#include "Font4x7.h"
 
 void textAt(int x, int y, byte size = 1);  // see initDisplay()
 void numAt(int x, int y, byte size = 1);
@@ -692,7 +693,6 @@ void initIO() {
 
 // Text in the system font (x, y = top left corner).
 void textAt(int x, int y, byte size) {
-  display.setFont(NULL);
   display.setTextSize(size);
   display.setCursor(x, y);
 }
@@ -708,6 +708,7 @@ void initDisplay() {
   display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS);
   Wire.setClock(400000L);  // Set I2C clock to 400kHz to see if this improves perfomance ToDo: measure this!
   display.clearDisplay();
+  display.setFont(&Font4x7);
   display.setTextSize(1);
   display.setTextColor(WHITE);
 
@@ -1196,7 +1197,6 @@ void resetSeq() {
 // Vertical side labels: system font (fixed width keeps the letters aligned).
 void verticalMenu(byte x, byte y, char c1, char c2, char c3, char c4) {
   char c[4] = { c1, c2, c3, c4 };
-  display.setFont(NULL);
   for (byte i = 0; i < 4; i++) {
     display.setCursor(x, y + 9 * i);
     display.print(c[i]);
@@ -1210,7 +1210,6 @@ void leftMenu(char c1, char c2, char c3, char c4) {
 // One glyph of the right column; inverted (white box, black letter) when it is the cursor.
 void rightGlyph(byte row, char c, bool inverted) {
   byte y = 9 * row;
-  display.setFont(NULL);
   if (inverted) {
     display.fillRect(119, y - 1, 7, 9, WHITE);
     display.setTextColor(BLACK);
@@ -1408,13 +1407,13 @@ void drawSystList() {
 // CLOCK entry: turn switches between the internal and the external clock
 void drawClock() {
   textAt(0, 0);
-  display.print(F("Clock"));
+  display.print(F("CLOCK"));
   textAt(0, 14, 3);
   display.print(internalClock ? F("INT") : F("EXT"));
   textAt(0, 44);
-  display.print(F("turn: INT / EXT"));
+  display.print(F("TURN INT OR EXT"));
   textAt(0, 55);
-  display.print(F("click: close"));
+  display.print(F("CLICK CLOSE"));
 }
 
 void drawEuclideanRhythms() {
@@ -1548,7 +1547,7 @@ void drawProbabilityConfig() {
 //  Display selected slot
 void drawSaveLoadSelection() {
   textAt(0, 0);
-  display.print(sysItem == 0 ? F("Save to Slot") : F("Load from Slot"));
+  display.print(sysItem == 0 ? F("SAVE TO SLOT") : F("LOAD FROM SLOT"));
   {
     numAt(0, 14, 2);
     display.print(selected_slot + 1, DEC);
@@ -1560,12 +1559,12 @@ void drawSaveLoadSelection() {
     for (byte k = 0; k < 3; k++) display.print(nameEdit ? nameBuf[k] : nameChar(selected_slot, k));
     if (nameEdit) display.drawFastHLine(44 + (nameEdit - 1) * 12, 31, 10, WHITE);  // letter being edited
     textAt(0, 35);
-    if (nameEdit) display.print(F("Name: turn, click"));
-    else if (sysItem == 0) display.print(used ? F("click to Overwrite") : F("click to Save"));
+    if (nameEdit) display.print(F("NAME TURN CLICK"));
+    else if (sysItem == 0) display.print(used ? F("CLICK TO OVERWRITE") : F("CLICK TO SAVE"));
   }
   if (sysItem == 1) {
     textAt(0, 35);
-    display.print(F("click to Load"));
+    display.print(F("CLICK TO LOAD"));
   }
 }
 
@@ -1581,7 +1580,7 @@ void drawTempo() {
 
   if (internalClock) {
     textAt(0, 0);
-    display.print(F("Dial in Tempo"));
+    display.print(F("DIAL IN TEMPO"));
 
     // Calculate the width of the filled portion based on the tempo
     int filledWidth = (long)(tempo - 40) * (w - 22) / (240 - 40);  // margin on each side (no float: saves flash)
@@ -1604,14 +1603,14 @@ void drawTempo() {
   } else {
     if (externalBPM == 0) {  // no signal at CLK
       textAt(0, 0);
-      display.print(F("Patch CLK or"));
+      display.print(F("PATCH CLK OR"));
       textAt(0, 13);
-      display.print(F("use CLOCK for"));
+      display.print(F("USE CLOCK FOR"));
       textAt(0, 26);
       display.print(F("INT CLK"));
     } else {
       textAt(0, 0);
-      display.print(F("Ext BPM"));
+      display.print(F("EXT BPM"));
       numAt(0, 13);
       display.print(externalBPM, DEC);
     }

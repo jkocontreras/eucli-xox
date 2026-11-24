@@ -155,7 +155,7 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 
 ![The SYST list](images/syst.png)
 
-- Next to the slot number, a filled circle means the slot has something saved; an outlined circle means it still has the initial rhythm (4 hits in 16 steps on every channel). In SAVE, the bottom line reads "click to Overwrite" when the slot has something saved.
+- Next to the slot number, a filled circle means the slot has something saved; an outlined circle means it still has the initial rhythm (4 hits in 16 steps on every channel). In SAVE, the bottom line reads "CLICK TO OVERWRITE" when the slot has something saved.
 - **Names:** each slot has a 3-letter name. After saving, the name opens for editing: turn to change the letter (space, A–Z, 0–9, -), click to go to the next one. A click after the third letter, or a long click at any time, closes it.
 - Slots use a compact 41-byte format that includes the XOX patterns. Slots saved by the original Euclid firmware are not converted: on a module coming from it, the first boot starts with empty slots.
 
@@ -217,6 +217,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 - 3-letter slot names, a saved/empty indicator, and an overwrite notice in SAVE.
 
 **Interface**
+- The screen uses a custom 4x7 pixel uppercase font (`EucliXOX/Font4x7.h`), so all texts are uppercase.
 - One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (XOX, RNDM, MUTE, SYST) or runs RSET. The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
 - Turning changes the number of the item. Press and turn changes channel on any item.
 - SYST groups SAVE, LOAD, CLOCK and BPM. SAVE and LOAD confirm with a click instead of holding the encoder.
