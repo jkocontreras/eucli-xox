@@ -11,7 +11,7 @@ EUCLID + XOX is a firmware for the 6 channel euclidean trigger sequencer designe
 - each channel can play only in some bars of a 4 bar cycle (COND), so channels can take turns;
 - each channel can change its rhythm at random in the bars you choose of a 4 bar cycle (RNDM);
 - channels are muted from a dedicated mode, and a global cut restores the previous mix;
-- holding the encoder shows an arrow (next or previous setting), and it works the same on every channel;
+- one cyclic chain of items: click goes forward, double click goes back, and long click opens the items that are marked as closed (XOX, RNDM, MUTE, SYST);
 - the screen shows the state of each channel with a few consistent signs (rings, stickers, numbers, donuts);
 - 9 presets in the memory slots go from simple to complex and show how the module works.
 
@@ -38,10 +38,10 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 - XOX step programming per channel, combinable with the euclidean mode;
 - COND, which chooses in which bars of a 4 bar cycle each channel plays;
 - RNDM, which chooses in which bars of a 4 bar cycle each channel changes its rhythm at random;
-- hold arrows to move between settings, the same on every channel;
+- the navigation: one cyclic chain with click, double click and long click, the cursor drawn as an inverted letter, and the SYST list for save, load, clock and tempo;
 - the autosaved working state;
 - mute mode with stickers, and the global cut that restores the previous mix;
-- 3-letter slot names, the saved/empty indicator, the overwrite notice and the hold line in S and L;
+- 3-letter slot names, the saved/empty indicator and the overwrite notice;
 - 9 presets ordered for learning, with a fixed channel order, written into the slots (the factory presets and the P menu were removed);
 - numbers at the center of the rings, BPM in the left column, probability donuts, and the splash;
 - fixes: LIMI above 16, the pixel noise from the stack reaching the display buffer, a steady external BPM reading, and shorter LED flashes.
@@ -51,72 +51,52 @@ The screenshots below are rendered from the firmware's own drawing code, at 4× 
 ## Quick guide
 
 ### How the menu works
-The module has one encoder: a knob that you can **turn**, **press** (click) and **press while turning**. It has two menus, and each one is used with a different gesture.
+The module has one encoder: a knob that you can turn, press (click) and press while turning. A double click and a long click (holding for 0.3 s) are also used.
 
-| | Modes menu | Channel settings menu |
+All the items are in one cyclic chain. A **click** goes to the next item and a **double click** goes to the previous one. After the last item it comes back to the first, and the other way round.
+
+| Gesture | What it does |
+|---|---|
+| **Turn** | Changes the number of the item you are on (on the first item, the channel). From XOX on, it chooses the item. |
+| **Press and turn** | Changes channel, on any item. |
+| **Click** | Next item. |
+| **Double click** | Previous item. |
+| **Long click** | Opens a closed item, runs RSET, and closes the mode that is open. |
+
+#### The chain
+The right column of the screen shows the selected channel as **1HO** … **6HO**: the number, then H (hits) and O (offset). On the first three items, the letter you are on is drawn inverted (white box, black letter). From LIMI on there is no initial to mark, and the name of the item is on the left.
+
+| Item | Left column | Turning |
 |---|---|---|
-| How you move | turning the encoder | clicking |
-| What it holds | what you work on: channels and functions of the whole module (RNDM, SAVE, LOAD, \*CLK, RSET, MUTE) | the settings of one channel (HITS, OFFS, LIMI, RESET, PROB, COND, XOX) |
-| How you enter | it is the normal state | a click on a channel |
+| **CH**, the channel (number inverted) | the BPM, written vertically | changes the channel |
+| **HITS** (H inverted) | HITS | changes the hits of the channel |
+| **OFFS** (O inverted) | OFFS | rotates the pattern |
+| **LIMI** | LIMI | changes the number of steps |
+| **RESET** | RESET | sends the channel back to its first step |
+| **PROB** | PROB | changes the probability of the channel, see PROB |
+| **COND** | COND | goes through the 16 combinations of bars, see COND |
+| **XOX** (closed) | XOX | chooses the item |
+| **RNDM** (closed) | RNDM | chooses the item |
+| **MUTE** (closed) | MUTE | chooses the item |
+| **RSET** | RSET | chooses the item |
+| **SYST** (closed) | SYST | chooses the item |
 
-Both menus use the same two columns of the screen: the right column shows the letters of the item you are on, and the left column shows its name. Turning alone is enough to see SAVE or LOAD, for example; the click is only needed to open them.
+From XOX on there is no number to change, so turning chooses the item of this part of the chain (XOX, RNDM, MUTE, RSET, SYST), and a click also goes to the next one.
 
-#### Modes menu (turn)
-This is the normal state of the module. Turning the encoder moves through the items, and after the last one it comes back to channel 1. In order:
+#### Closed items
+The items that open with a long click have their name inverted on the left (white strip, black letters). RSET is also drawn inverted: a long click runs the reset of all channels and stays in the chain.
 
-| Right column | Left column | What it is for |
+| Item | Long click opens | Inside the mode |
 |---|---|---|
-| **1HO** … **6HO** | the BPM, written vertically | The six channels. Each one has its own rhythm. |
-| **RNDM** | RNDM, inverted while you are inside the mode | Timed random: each channel changes its hits and offset at random in the bars you choose. See RNDM. |
-| **S** | SAVE | Saves the current rhythms in one of 20 memory slots. |
-| **L** | LOAD | Loads rhythms saved in a slot. |
-| **INT** or **EXT** | \*CLK | Tempo and clock. INT is the internal clock and EXT is the external one. |
-| **R** | RSET | Reset: sends all channels back to their first step. |
-| **M** | MUTE | Mute: silences channels. After M, the cursor returns to **1HO**. |
+| **XOX** | step programming of the selected channel | turn moves the cursor, click toggles the step, press and turn changes channel |
+| **RNDM** | timed random | turn goes through the 16 combinations of the channel, press and turn changes channel |
+| **MUTE** | mute mode | turn chooses a channel, click mutes or unmutes it, press and turn makes the global cut |
+| **SYST** | system list: SAVE, LOAD, CLOCK, BPM | turn chooses the entry, click opens it |
 
-A click on an item of this menu does the following:
-- On **R** (RSET), it runs the reset right away.
-- On **RNDM**, it enters RNDM mode, where turning goes through the 16 combinations of bars of a channel and press and turn changes channel.
-- On **S** (SAVE) and **L** (LOAD), it opens a window with the slot number. Turn to choose the slot and hold the encoder until the line under the text is full to save or load.
-- On **INT / EXT** (\*CLK), it opens a window with the BPM. Turn to change it and click to close.
-- On **M** (MUTE), it enters mute mode, where you choose a channel by turning and mute it with a click.
-- On a **channel (1HO–6HO)**, it enters the channel settings menu.
-
-#### Channel settings menu (click)
-It is reached with a click on a channel. The name of the setting appears in the left column. The settings affect only that channel. Each click moves to the next one, in this order: **HITS, OFFS, LIMI, RESET, PROB, COND, XOX**.
-
-While you are in a setting, turning does not move through the modes menu. It changes the value of that setting (hits, offset, probability, and so on). In XOX a click toggles the step under the cursor, so you leave XOX by holding the encoder until the right arrow appears and releasing (see Navigation with arrows). You are then back in the modes menu.
-
-#### Press while turning
-- In the modes menu, on a channel, it changes the HITS of that channel directly, without entering its settings.
-- In the channel settings menu, it changes to another channel and stays in the same setting. For example, in PROB you can go through the six channels and compare their probabilities.
-
-### Channel menu
-On a channel, a click moves to the next setting: **HITS → OFFS → LIMI → RESET → PROB → COND → XOX**. From XOX you go back to the top by holding the encoder (→). Turning changes the value of the selected setting. Holding the encoder also moves between settings, see Navigation with arrows.
-
-- Pressing and turning the encoder on a channel at the top level changes its HITS directly.
-- Channels are muted from **M**, not from the channel menu. Holding the encoder on a channel at the top level works like in its settings (see Navigation with arrows).
-- When the left column is empty, it shows the current BPM, written vertically.
-
-### Navigation with arrows
-Holding the encoder on a channel, at its top level or inside any of its settings, shows an arrow in the left column in place of the setting name. Releasing runs what the arrow shows. It works the same everywhere on a channel.
-
-| Time held | Arrow | On release |
-|---|---|---|
-| under 0.3 s | none | normal click (in XOX it toggles the step) |
-| 0.3 s to 1 s | right (→) | next setting |
-| over 1 s | left (←) | previous setting |
-
-![Holding for 0.3 s to 1 s: right arrow](images/hold-next.png) ![Holding over 1 s: left arrow](images/hold-back.png)
-
-- At the top level of a channel, → goes to HITS. There is no left arrow there.
-- In XOX, → returns to the channel menu and ← goes back to COND.
-- The order of the settings is the one of the click: HITS, OFFS, LIMI, RESET, PROB, COND, XOX.
-- Channels are not muted from here: mute is in **M**.
-- The times are the constants `LONG_CLICK_MS` (300) and `HOLD_BACK_MS` (1000) in the source. S, L and T use `LONG_CLICK_MS` for their long click.
+Inside any mode a long click leaves it and the cursor stays on that item. While a mode is open, a click answers at once. In the chain, a click waits 220 ms to tell whether it is a double click (`MULTI_CLICK_MS` in the source).
 
 ### Probability (PROB)
-PROB is the setting before XOX. Each channel shows its probability as a donut that fills clockwise from the top, with the number in the hole. A full donut is 100 %. The selected channel has a thin outer ring; press and turn to change channel.
+Each channel shows its probability as a donut that fills clockwise from the top, with the number in the hole. A full donut is 100 %. The selected channel has a thin outer ring; press and turn to change channel.
 
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
 
@@ -128,13 +108,13 @@ COND sets in which bars of a 4 bar cycle a channel plays. A bar is 16 clocks, on
 Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMI or XOX) is the same in every bar; COND only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before COND read as XXXX.
 
 ### XOX (step programming)
-XOX is the last setting of the channel menu.
+XOX is a closed item: a long click opens it on the selected channel.
 
 ![XOX step mode with the diamond cursor on channel 5](images/xox.png)
 
 - Turn to move the cursor, a filled diamond, through the steps up to the LIMI length.
 - Click to turn the step under the cursor on or off. The diamond blinks when the step is on.
-- Hold to leave, with the arrows (see Navigation with arrows): → returns to the channel menu and ← goes back to COND. A short click only toggles the step.
+- Press and turn to change channel. A long click leaves XOX and the cursor stays on the XOX item.
 
 The first edit switches the channel to XOX and starts from the euclidean pattern that was playing. OFFS rotates the drawn pattern. Changing HITS, or a random change of the hits, returns the channel to euclidean mode; HITS starts from the number of active steps of the drawing.
 
@@ -150,23 +130,20 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 ![RNDM mode: square per channel, channel 3 selected](images/rndm.png)
 
 - RNDM shows the same square divided in 4 as COND, one per channel, with one quarter per bar of the 4 bar cycle. A filled quarter means that the channel changes its hits and offset at random at the start of that bar. An empty quarter means no change in that bar.
-- Turn to **RNDM** in the modes menu to see the squares. Click to enter the mode: the RNDM label on the left turns inverted (white strip, black letters) and the selected channel gets a frame.
-- Inside the mode, turn to go through the 16 combinations of the channel, from 0000 (never) to XXXX (every bar), in the same order as COND. Press and turn to change channel. Hold to leave: the cursor jumps to channel 1.
+- Go to **RNDM** in the chain to see the squares. A long click opens the mode: the selected channel gets a frame and its number appears inverted in the right column.
+- Inside the mode, turn to go through the 16 combinations of the channel, from 0000 (never) to XXXX (every bar), in the same order as COND. Press and turn to change channel. A long click leaves the mode.
 - Examples: X000 changes the channel once every 4 bars, X0X0 in bars 1 and 3, XXXX in every bar.
 - The default is 0000 on every channel. The combinations stay active while you work on other items, and they are not saved: at power-up every channel is at 0000.
 - The change needs the clock to run (internal or external), since bars are counted with the clock pulses.
 - The random changes do not touch the mutes. A channel that was muted stays muted.
 
-### Mute (M)
+### Mute (MUTE)
 
-![Mute mode: inverted MUTE label, channels 2 and 6 muted, cursor on channel 4](images/mute-mode.png) ![Global cut: all channels muted](images/mute-cut.png)
+![Mute mode: channels 2 and 6 muted, cursor on channel 4](images/mute-mode.png) ![Global cut: all channels muted](images/mute-cut.png)
 
-- Click on **M** to enter mute mode. The MUTE label on the left turns inverted (white strip, black letters). Turn to choose a channel and click to mute or unmute it. Long click to leave: the mutes stay as they are and the cursor jumps to channel 1.
-- Hold the encoder on **M**, outside mute mode, for a global cut:
-  - after 0.4 s all channels are muted, and the ones that were just muted blink for 2 seconds;
-  - holding to 2 s makes all stickers blink;
-  - holding to 4 s unmutes all channels.
-- While the cut is active, holding the encoder on **M** again for 0.4 s restores the previous mutes. Changing a mute by hand in the meantime clears the stored mix, and the next hold mutes all again.
+- Go to **MUTE** in the chain and open it with a long click. Turn to choose a channel and click to mute or unmute it. A long click leaves: the mutes stay as they are.
+- **Global cut**, inside the mode with press and turn: to the right it mutes all channels and remembers the previous mix. To the left it restores that mix. If there is no stored mix, to the left it unmutes all channels.
+- Changing a mute by hand clears the stored mix.
 - A muted channel is drawn as a white circle with a black M.
 
 ### Memory
@@ -174,10 +151,12 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 ![Load screen with slot number, saved indicator and name](images/load.png) ![Naming a slot after saving](images/save-name.png)
 
 - **Working state:** the current state is saved automatically 10 seconds after the last encoder action, and it comes back at power-up. It is written one byte per loop pass, so playback keeps running while it saves.
-- **S / L:** click to open, turn to choose one of 20 slots, long click to save or load.
-- Next to the slot number, a filled circle means the slot has something saved; an outlined circle means it still has the initial rhythm (4 hits in 16 steps on every channel). In S, the bottom line reads "long PRESS Overwrite" when the slot has something saved.
-- While you hold the encoder in S or L, a line fills under the text. When it is full, releasing saves or loads; releasing earlier does nothing.
-- **Names:** each slot has a 3-letter name. After saving with a long click, the name opens for editing: turn to change the letter (space, A–Z, 0–9, -), click to go to the next one. A click after the third letter, or a long click at any time, closes it.
+- **SAVE and LOAD** are entries of **SYST**. Open SYST with a long click, turn to choose SAVE or LOAD and click to open it. Turn to choose one of 20 slots and click again to confirm: it saves or loads. A long click leaves without confirming.
+
+![The SYST list](images/syst.png)
+
+- Next to the slot number, a filled circle means the slot has something saved; an outlined circle means it still has the initial rhythm (4 hits in 16 steps on every channel). In SAVE, the bottom line reads "click to Overwrite" when the slot has something saved.
+- **Names:** each slot has a 3-letter name. After saving, the name opens for editing: turn to change the letter (space, A–Z, 0–9, -), click to go to the next one. A click after the third letter, or a long click at any time, closes it.
 - Slots use a compact 41-byte format that includes the XOX patterns. Slots saved by the original Euclid firmware are not converted: on a module coming from it, the first boot starts with empty slots.
 
 ### Presets
@@ -219,7 +198,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 - Loading a preset sets its tempo but does not switch between internal and external clock.
 
 ### Clock
-- **T:** click to see the tempo, turn to change it (40–240 BPM). Long click switches between internal and external clock.
+- **CLOCK** and **BPM** are entries of **SYST**. In CLOCK, turn to switch between INT (internal clock) and EXT (external clock) and click to close. In BPM, turn to change the tempo (40–240 BPM) and click to close. With the external clock, BPM shows the measured tempo.
 - With an external clock, the BPM is measured in microseconds and averaged over about 4 pulses, so the reading stays steady.
 
 ## Changes from the original Euclid firmware
@@ -228,25 +207,28 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 - XOX step programming mode per channel.
 - COND: each channel plays in the bars of a 4 bar cycle that you choose (16 combinations).
 - RNDM: each channel changes its hits and offset at random in the bars of a 4 bar cycle that you choose (16 combinations, as COND). It replaces the original RND (auto advance over 2 to 16 bars, all channels) and X (random change of all channels) items.
-- MUTE was removed from the channel settings; channels are muted only from mute mode (M).
-- Mute mode on M, and a global cut that restores the previous mutes. The full-screen MUTE view was removed.
+- MUTE was removed from the channel settings; channels are muted only from mute mode (MUTE).
+- Mute mode, and a global cut inside it that restores the previous mutes. The full-screen MUTE view was removed.
 
 **Memory**
 - Autosaved working state, written without stopping playback.
 - Compact slot format (`EUCLID11`) with XOX patterns (slots from the original `EUCLID10` format are not converted).
 - The 20 factory presets and the P menu were replaced by 9 presets stored in the slots, with a fixed channel order (see Presets).
-- 3-letter slot names, a saved/empty indicator, and an overwrite notice in S.
+- 3-letter slot names, a saved/empty indicator, and an overwrite notice in SAVE.
 
 **Interface**
-- Holding the encoder on a channel shows an arrow in the left column: from 0.3 s, release goes to the next setting; from 1 s, release goes to the previous one. It works the same on the channel menu and on every setting, including XOX.
+- One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (XOX, RNDM, MUTE, SYST) or runs RSET. The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
+- Turning changes the number of the item. Press and turn changes channel on any item.
+- SYST groups SAVE, LOAD, CLOCK and BPM. SAVE and LOAD confirm with a click instead of holding the encoder.
+- The cursor is an inverted letter in the right column (the channel number, H or O). Closed items have their name inverted on the left.
 
 **Display**
 - EUCLID + XOX splash.
 - PROB shows each channel's probability as a donut, with a ring on the selected channel.
 - COND shows each channel's bars as a square divided in 4.
 - Step and hit numbers at the center of the rings.
-- BPM in the empty left column.
-- SAVE, LOAD and TEMPO screens left-aligned with more line spacing.
+- BPM in the left column while the chain is on CH.
+- SAVE, LOAD, CLOCK and BPM screens left-aligned with more line spacing.
 - Removed the small animated pixel noise in the lower right corner. It came from the stack reaching the display buffer; RAM use was reduced to fix it.
 
 **Clock and LEDs**

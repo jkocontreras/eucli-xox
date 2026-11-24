@@ -99,7 +99,7 @@ const byte ENCODER_SW_PIN = 12;
 
 //#define DEBUG  // Uncomment for enabling debug print to serial monitoring output. Note: this affects performance and locks LED 4 & 5 on HIGH.
 
-// Top level menu for selecting a channel or global settings.
+// Channels (selected_menu always holds the selected channel).
 enum TopMenu {
   MENU_CH_1,
   MENU_CH_2,
@@ -107,12 +107,6 @@ enum TopMenu {
   MENU_CH_4,
   MENU_CH_5,
   MENU_CH_6,
-  MENU_RNDM,  // timed random: marked channels change at random at the start of every bar
-  MENU_SAVE,
-  MENU_LOAD,
-  MENU_TEMPO,
-  MENU_ALL_RESET,
-  MENU_ALL_MUTE,
   MENU_LAST
 };
 
@@ -124,10 +118,31 @@ enum Setting {
   SETTING_LIMIT,
   SETTING_RESET,
   SETTING_PROB,
-  SETTING_COND,  // COND: in which of 2 consecutive bars (16 clocks each) the channel plays
-  SETTING_XOX,  // XOX mode: turn moves the cursor, click toggles the step, hold leaves
+  SETTING_COND,  // COND: in which bars of the 4 bar cycle the channel plays
+  SETTING_XOX,  // XOX mode: turn moves the cursor, click toggles the step, long click leaves
   SETTING_LAST
 };
+
+// Navigation: one cyclic chain of items. Click goes to the next, double click to the previous.
+// Long click opens the closed items (XOX, RNDM, MUTE, SYST), runs RSET, and closes an open mode.
+// Turning changes the number of the item (the channel in CH), and in the list from XOX on it chooses the item.
+// Press and turn changes channel.
+enum Nav : byte {
+  NAV_CH,  // the selected channel (turn changes channel)
+  NAV_HITS,
+  NAV_OFFS,
+  NAV_LIMI,
+  NAV_RESET,
+  NAV_PROB,
+  NAV_COND,
+  NAV_XOX,   // closed: XOX step programming
+  NAV_RNDM,  // closed: timed random
+  NAV_MUTE,  // closed: mute mode
+  NAV_RSET,  // runs the reset of all channels
+  NAV_SYST,  // closed: SAVE, LOAD, CLOCK, BPM
+  NAV_LAST
+};
+#define MULTI_CLICK_MS 220  // double click window; inside the modes it is 20 ms so that clicks answer at once
 
 // For debug / UI
 // EUCLID11: compact slot format with XOX patterns. Slots of any other format are not converted.
@@ -165,27 +180,21 @@ byte barCond[6] = { BAR_ALL, BAR_ALL, BAR_ALL, BAR_ALL, BAR_ALL, BAR_ALL };
 byte barClock = 15;  // clock count inside the bar; 15 so that the next clock starts bar 1
 byte barIdx = 3;     // bar being played, 0..3
 
-// Holding the encoder on a channel (its menu or its settings): 0 nothing, 1 = arrow right (next, from 0.3 s),
-// 2 = arrow left (previous, from 1 s). Releasing runs the action that the arrow shows.
-byte holdArrow = 0;
-byte holdLast = 0;  // last arrow shown while pressed; the library reports the long click a few ms after releasing
-#define HOLD_BACK_MS 1000
-
 // display Menu and UI
 // Select settings menu and channel menu
 TopMenu selected_menu = MENU_CH_1;
 Setting selected_setting = SETTING_TOP_MENU;
+byte nav = NAV_CH;
+bool xoxMode = false;  // XOX open
+bool systMode = false;  // SYST open (showOverlay = an entry of SYST is open)
+byte sysItem = 0;       // 0 SAVE, 1 LOAD, 2 CLOCK, 3 BPM
 byte selected_slot = 0;
 bool disp_refresh = true;
 bool force_refresh = true;
 unsigned long last_refresh = 0;
-// Global cut: hold the encoder on M (outside mute mode).
-// 0.4 s mutes all (or restores the previous mix if a cut is active), 2 s blinks all, 4 s unmutes all.
-byte cutMask = 0;    // channels muted by the cut (0 = no active cut)
-byte blinkMask = 0;  // stickers that blink
-byte holdStage = 0;
-unsigned long cutTime = 0;
-// Mute mode on M: turn chooses a channel, click mutes/unmutes, long click leaves
+// Global cut, inside the mute mode: press and turn to the right mutes all, to the left restores the previous mix.
+byte cutMask = 0;  // channels muted by the cut (0 = no active cut)
+// Mute mode: turn chooses a channel, click mutes/unmutes, long click leaves
 bool muteMode = false;
 byte muteCursor = 0;
 
@@ -632,32 +641,14 @@ void loop() {
   }
 
   // In XOX the screen refreshes when the cursor blink phase changes
-  // (and faster while global cut stickers blink)
-  if (selected_setting == SETTING_XOX || blinkMask) {
+  if (selected_setting == SETTING_XOX) {
     static bool blinkPhase = false;
-    bool phase = millis() & (blinkMask ? 128 : 512);
+    bool phase = millis() & 512;
     if (phase != blinkPhase) {
       blinkPhase = phase;
       disp_refresh = true;
     }
   }
-
-  globalCut();
-  {  // arrow while holding inside a channel setting
-    byte arrow = 0;
-    if (encoder.isPressed()) {
-      if (selected_menu <= MENU_CH_6 && !showOverlay) {
-        unsigned long d = encoder.currentDuration();
-        arrow = d >= HOLD_BACK_MS && selected_setting != SETTING_TOP_MENU ? 2 : d >= LONG_CLICK_MS ? 1 : 0;  // no left arrow in the channel menu
-      }
-      holdLast = arrow;
-    }
-    if (arrow != holdArrow) {
-      holdArrow = arrow;
-      disp_refresh = true;
-    }
-  }
-  if (showOverlay && encoder.isPressed()) disp_refresh = true;  // long click line in S and L
 
   // Redrawing the screen takes ~25 ms and nothing can be switched off meanwhile:
   // wait until the LED flashes end, so they really last LED_FLASH_MS.
@@ -668,12 +659,13 @@ void loop() {
 
 void setupEncoder() {
   encoder.setDebounceInterval(2);  // Increase debounce interval
-  encoder.setMultiClickInterval(20);
+  encoder.setMultiClickInterval(MULTI_CLICK_MS);
   encoder.setRateLimit(100);
   encoder.setIdleTimeout(5000);
   encoder.setIdleHandler(onOverlayTimeout);
   encoder.setLongClickDuration(LONG_CLICK_MS);
   encoder.setClickHandler(onEncoderClicked);
+  encoder.setDoubleClickHandler(onEncoderDoubleClicked);
   encoder.setLongClickHandler(onEncoderLongClicked);  // Add long click handler
   encoder.setEncoderHandler(onEncoderRotation);
   encoder.setEncoderPressedHandler(onEncoderPressedRotation);  // Added handler again for pressed rotation
@@ -771,6 +763,21 @@ bool isClockRunning() {
   return internalClock || (millis() - last_clock_input < period);
 }
 
+bool inMode() {
+  return xoxMode || muteMode || rndmMode || systMode;
+}
+
+// After any change of nav or of a mode: the setting that the drawing and the turning use, and the double click window.
+void syncNav() {
+  selected_setting = nav <= NAV_COND ? static_cast<Setting>(nav) : (nav == NAV_XOX && xoxMode ? SETTING_XOX : SETTING_TOP_MENU);
+  encoder.setMultiClickInterval(inMode() ? 20 : MULTI_CLICK_MS);
+  disp_refresh = true;
+}
+
+void changeChannel(int dir) {
+  selected_menu = static_cast<TopMenu>((selected_menu + (dir > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS);
+}
+
 void onEncoderClicked(EncoderButton &eb) {
   markChange();
   if (!isClockRunning()) {
@@ -780,49 +787,43 @@ void onEncoderClicked(EncoderButton &eb) {
 
   if (nameEdit) {
     if (++nameEdit > 3) finishName();  // click: next letter; after the third, close
-  } else if (showOverlay) {
-    onOverlayTimeout(eb);  // Handle click to exit overlay
-  } else {
-    switch (selected_menu) {
-      // Channel-specific actions
-      case MENU_CH_1:
-      case MENU_CH_2:
-      case MENU_CH_3:
-      case MENU_CH_4:
-      case MENU_CH_5:
-      case MENU_CH_6:
-        if (selected_setting == SETTING_XOX) {
-          toggleXoxStep(selected_menu);  // in XOX a click toggles the step under the cursor
-        } else {
-          // Click should only advance selected setting when a channel top menu is selected.
-          selected_setting = static_cast<Setting>((selected_setting + 1) % SETTING_LAST);
-        }
-        break;
-      // Mode-specific actions
-      case MENU_ALL_RESET:
-        resetSeq();
-        break;
-      case MENU_ALL_MUTE:
-        if (!muteMode) {
-          muteMode = true;   // enter mute mode
-        } else {
-          currentConfig.mute[muteCursor] = !currentConfig.mute[muteCursor];
-          cutMask = 0;       // the mix stored by the cut no longer applies
-        }
-        break;
-      case MENU_RNDM:
-        rndmMode = true;  // enter RNDM mode (a click inside does nothing; hold leaves)
-        break;
-      case MENU_SAVE:
-      case MENU_LOAD:
-      case MENU_TEMPO:
-        showOverlay = !showOverlay;
-        break;
+  } else if (systMode) {
+    if (!showOverlay) {
+      showOverlay = true;  // open the entry
+    } else if (sysItem == 0) {  // SAVE: confirm, then the slot is named
+      bool used = slotUsed(selected_slot);
+      saveToEEPROM(selected_slot);
+      for (byte k = 0; k < 3; k++) nameBuf[k] = used ? nameChar(selected_slot, k) : '-';
+      nameEdit = 1;
+    } else {  // LOAD: confirm; CLOCK and BPM: close
+      if (sysItem == 1) loadFromEEPROM(selected_slot);
+      showOverlay = false;
     }
+  } else if (xoxMode) {
+    toggleXoxStep(selected_menu);  // in XOX a click toggles the step under the cursor
+  } else if (muteMode) {
+    currentConfig.mute[muteCursor] = !currentConfig.mute[muteCursor];
+    cutMask = 0;  // the mix stored by the cut no longer applies
+  } else if (rndmMode) {
+    // a click inside RNDM does nothing: turn changes the combination, long click leaves
+  } else {
+    nav = (nav + 1) % NAV_LAST;
+    syncNav();
   }
 }
 
-// now toggles the mute status of the selected channel when in SETTING_TOP_MENU
+void onEncoderDoubleClicked(EncoderButton &eb) {
+  if (inMode()) {  // inside a mode a double click counts as two clicks
+    onEncoderClicked(eb);
+    onEncoderClicked(eb);
+    return;
+  }
+  markChange();
+  nav = (nav + NAV_LAST - 1) % NAV_LAST;
+  syncNav();
+}
+
+// Long click: closes what is open, or opens the closed item that is selected.
 void onEncoderLongClicked(EncoderButton &eb) {
   markChange();
   if (!isClockRunning()) {
@@ -830,47 +831,54 @@ void onEncoderLongClicked(EncoderButton &eb) {
   }
   disp_refresh = true;
 
-  // On a channel (its menu or its settings): the arrow that was showing decides. Right (or just a long click)
-  // = next setting (from the channel menu, HITS; after the last one, the channel menu), left = previous setting.
-  // Channels are muted only from M.
-  if (selected_menu <= MENU_CH_6) {
-    selected_setting = static_cast<Setting>((selected_setting + (holdLast == 2 ? SETTING_LAST - 1 : 1)) % SETTING_LAST);
-  } else if (showOverlay) {
-    // Handle specific overlay actions
-    switch (selected_menu) {
-      case MENU_SAVE:
-        if (nameEdit) {
-          finishName();  // long click while naming: close
-        } else {
-          bool used = slotUsed(selected_slot);
-          saveToEEPROM(selected_slot);
-          for (byte k = 0; k < 3; k++) nameBuf[k] = used ? nameChar(selected_slot, k) : '-';
-          nameEdit = 1;  // after saving, the slot is named
-        }
+  if (nameEdit) {
+    finishName();  // long click while naming: close
+  } else if (systMode) {
+    if (showOverlay) showOverlay = false;  // leave the entry without confirming
+    else systMode = false;
+  } else if (xoxMode) {
+    xoxMode = false;
+  } else if (muteMode) {
+    muteMode = false;
+  } else if (rndmMode) {
+    rndmMode = false;
+  } else {
+    switch (nav) {
+      case NAV_XOX: xoxMode = true; break;
+      case NAV_RNDM: rndmMode = true; break;
+      case NAV_MUTE: muteMode = true; break;
+      case NAV_RSET: resetSeq(); break;
+      case NAV_SYST:
+        systMode = true;
+        sysItem = 0;
+        showOverlay = false;
         break;
-      case MENU_LOAD:
-        loadFromEEPROM(selected_slot);
-        showOverlay = false;                         // Turn off the overlay
-        break;
     }
-  } else if (selected_menu == MENU_ALL_MUTE) {
-    if (muteMode) {  // leave mute mode and jump to channel 1 (the next item when turning)
-      muteMode = false;
-      selected_menu = MENU_CH_1;
-    }
-    // outside the mode, the global cut is handled while held (in loop)
-  } else if (selected_menu == MENU_RNDM) {
-    if (rndmMode) {  // leave RNDM mode and jump to channel 1
-      rndmMode = false;
-      selected_menu = MENU_CH_1;
-    }
-  } else if (selected_menu == MENU_TEMPO) {
-    internalClock = !internalClock;  // Toggle the internal clock state
-    showOverlay = true;              // Show overlay to indicate clock state change
-    if (internalClock) period = 60000 / tempo / 4;
   }
+  syncNav();
 }
 
+// Turning inside SYST: choose the entry, or change the value of the open entry.
+void sysTurn(int increment, int accelerated) {
+  if (!showOverlay) {
+    sysItem = (sysItem + (increment > 0 ? 1 : 3)) & 3;
+  } else if (sysItem < 2) {
+    if (nameEdit) {  // turning changes the letter
+      char *c = &nameBuf[nameEdit - 1];
+      byte i = (const char *)strchr_P(NAME_CHARS, *c) - NAME_CHARS;
+      *c = pgm_read_byte(&NAME_CHARS[(i + increment + NUM_NAME_CHARS) % NUM_NAME_CHARS]);
+    } else {
+      selected_slot = (selected_slot + increment + NUM_MEMORY_SLOTS) % NUM_MEMORY_SLOTS;
+    }
+  } else if (sysItem == 2) {  // CLOCK: turn switches between INT and EXT
+    internalClock = !internalClock;
+    currentConfig.internalClock = internalClock;
+    if (internalClock) period = 60000 / tempo / 4;
+  } else if (internalClock) {  // BPM: 40 to 240
+    tempo = constrain(tempo + accelerated, 40, 240);
+    period = 60000 / tempo / 4;
+  }
+}
 
 void onEncoderRotation(EncoderButton &eb) {
   int increment = encoder.increment();  // Get the incremental change (could be negative, positive, or zero)
@@ -890,45 +898,16 @@ void onEncoderRotation(EncoderButton &eb) {
   int acceleratedIncrement = increment * increment;  // Squaring the increment
   if (increment < 0) acceleratedIncrement = -acceleratedIncrement;
 
-  // Only handle setting navigation if not all muted and the overlay is not shown.
-  if (!showOverlay) {
-    handleSettingNavigation(acceleratedIncrement);
-    return;
-  }
-
-  // Overlay shown menu adjustments.
-  if (selected_setting == SETTING_TOP_MENU && showOverlay) {
-    switch (selected_menu) {
-      case MENU_TEMPO:
-        // Increment the tempo with the accelerated increment
-        tempo += acceleratedIncrement;
-
-        // Ensure the tempo stays within the range of 40 to 240 BPM
-        if (tempo < 40) {
-          tempo = 40;
-        } else if (tempo > 240) {
-          tempo = 240;
-        }
-
-        // Calculate the period based on the tempo
-        period = 60000 / (tempo * 4);
-        break;
-
-      case MENU_SAVE:
-      case MENU_LOAD:
-        if (nameEdit) {  // turning changes the letter
-          char *c = &nameBuf[nameEdit - 1];
-          byte i = (const char *)strchr_P(NAME_CHARS, *c) - NAME_CHARS;
-          *c = pgm_read_byte(&NAME_CHARS[(i + increment + NUM_NAME_CHARS) % NUM_NAME_CHARS]);
-        } else {
-          selected_slot = (selected_slot + increment + NUM_MEMORY_SLOTS) % NUM_MEMORY_SLOTS;
-        }
-        break;
-
-      default:
-        // If no valid menu is selected, do nothing.
-        break;
-    }
+  if (systMode) {
+    sysTurn(increment, acceleratedIncrement);
+  } else if (nav == NAV_CH) {
+    changeChannel(increment);
+  } else if (nav < NAV_XOX || xoxMode) {
+    handleSettingNavigation(acceleratedIncrement);  // the value of the setting (in XOX, the cursor)
+  } else {  // the list from XOX on: turning chooses the item
+    const byte n = NAV_LAST - NAV_XOX;
+    nav = NAV_XOX + (nav - NAV_XOX + (increment > 0 ? 1 : n - 1)) % n;
+    syncNav();
   }
 }
 
@@ -938,46 +917,22 @@ void onEncoderPressedRotation(EncoderButton &eb) {
   markChange();
   disp_refresh = true;
 
-  if (rndmMode) {  // in RNDM mode, press and turn changes channel
+  if (muteMode) {  // global cut: to the right mutes all, to the left restores the previous mix
+    if (increment > 0) {
+      if (!cutMask) {
+        cutMask = ~mutedMask() & 0x3F;
+        setMutes(0x3F);
+      }
+    } else if (cutMask) {
+      setMutes(mutedMask() & ~cutMask);
+      cutMask = 0;
+    } else {
+      setMutes(0);  // no stored mix: unmute all
+    }
+  } else if (rndmMode) {  // in RNDM mode, press and turn changes channel
     rndmCursor = (rndmCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
-    return;
-  }
-
-  int acceleratedIncrement = increment * increment;  // Squaring the increment for quicker adjustments
-  if (increment < 0) acceleratedIncrement = -acceleratedIncrement;
-
-  // Handle specific modes when not in MENU_ALL_MUTE
-  switch (selected_menu) {
-    case MENU_CH_1:
-    case MENU_CH_2:
-    case MENU_CH_3:
-    case MENU_CH_4:
-    case MENU_CH_5:
-    case MENU_CH_6:
-      if (selected_setting == SETTING_TOP_MENU) {
-        // Adjust the Hits value for the selected channel to quickly edit the beat/rhythm
-        leaveXox(selected_menu);
-        currentConfig.hits[selected_menu] = (currentConfig.hits[selected_menu] + increment + 17) % 17;
-      } else {
-        // Handle channel switching when in specific modes
-        selected_menu = static_cast<TopMenu>((selected_menu + increment + MENU_LAST) % MENU_LAST);
-        // Ensure the selected_menu is within the range of channels
-        if (selected_menu > MENU_CH_6) {
-          selected_menu = MENU_CH_1;
-        }
-      }
-      break;
-
-    default:
-      // Handle other settings or ignore
-      if (selected_setting != SETTING_TOP_MENU) {
-        selected_menu = static_cast<TopMenu>((selected_menu + increment + MENU_LAST) % MENU_LAST);
-        // Ensure the selected_menu is within the range of channels
-        if (selected_menu > MENU_CH_6) {
-          selected_menu = MENU_CH_1;
-        }
-      }
-      break;
+  } else if (!systMode) {  // everywhere else: the selected channel (in XOX, the channel that is edited)
+    changeChannel(increment);
   }
 }
 
@@ -1106,9 +1061,6 @@ void unpackConfig(const StoredConfig &s) {
 
 void handleSettingNavigation(int changeDirection) {
   switch (selected_setting) {
-    case SETTING_TOP_MENU:                                                                              // Select channel
-      selected_menu = static_cast<TopMenu>((selected_menu + changeDirection + MENU_LAST) % MENU_LAST);  // Wrap-around for channel selection
-      break;
     case SETTING_HITS:                                                                                                          // Hits
       leaveXox(selected_menu);  // changing HITS returns the channel to eucli
       currentConfig.hits[selected_menu] = (currentConfig.hits[selected_menu] + changeDirection + MAX_PATTERNS) % MAX_PATTERNS;  // Ensure hits wrap properly
@@ -1228,40 +1180,6 @@ void setMutes(byte m) {
   disp_refresh = true;
 }
 
-// Global cut on M, by hold time (the library's long click only fires on release)
-void globalCut() {
-  if (selected_menu == MENU_ALL_MUTE && !muteMode && !showOverlay && encoder.isPressed()) {
-    unsigned long d = encoder.currentDuration();
-    if (holdStage == 0 && d >= 400) {
-      if (cutMask) {  // a cut is active: restore the previous mix
-        setMutes(mutedMask() & ~cutMask);
-        cutMask = 0;
-        holdStage = 3;
-      } else {        // cut: mute all, the newly muted ones blink
-        cutMask = ~mutedMask() & 0x3F;
-        blinkMask = cutMask;
-        cutTime = millis();
-        setMutes(0x3F);
-        holdStage = 1;
-      }
-    } else if (holdStage == 1 && d >= 2000) {
-      blinkMask = 0x3F;  // still held: all blink
-      holdStage = 2;
-    } else if (holdStage == 2 && d >= 4000) {
-      setMutes(0);       // and at 4 s everything is unmuted
-      cutMask = 0;
-      blinkMask = 0;
-      holdStage = 3;
-    }
-  } else if (!encoder.isPressed()) {
-    holdStage = 0;
-  }
-  if (blinkMask && holdStage != 2 && millis() - cutTime >= 2000) {
-    blinkMask = 0;
-    disp_refresh = true;
-  }
-}
-
 void resetSeq() {
   for (int k = 0; k < MAX_CHANNELS; k++) {
     playing_step[k] = 15;
@@ -1284,81 +1202,60 @@ void leftMenu(char c1, char c2, char c3, char c4) {
   verticalMenu(0, 30, c1, c2, c3, c4);
 }
 
-void rightMenu(char c1, char c2, char c3, char c4) {
-  verticalMenu(120, 0, c1, c2, c3, c4);
-}
-
-void drawTopMenuRight(TopMenu select_ch) {
-  if (showOverlay) return;  // Exit
-  switch (select_ch) {
-    case MENU_CH_1: rightMenu('1', 'H', 'O', ' '); break;
-    case MENU_CH_2: rightMenu('2', 'H', 'O', ' '); break;
-    case MENU_CH_3: rightMenu('3', 'H', 'O', ' '); break;
-    case MENU_CH_4: rightMenu('4', 'H', 'O', ' '); break;
-    case MENU_CH_5: rightMenu('5', 'H', 'O', ' '); break;
-    case MENU_CH_6: rightMenu('6', 'H', 'O', ' '); break;
-    case MENU_RNDM: rightMenu('R', 'N', 'D', 'M'); break;
-    case MENU_SAVE: rightMenu('S', ' ', ' ', ' '); break;
-    case MENU_LOAD: rightMenu('L', ' ', ' ', ' '); break;
-    case MENU_ALL_RESET: rightMenu('R', ' ', ' ', ' '); break;
-    case MENU_ALL_MUTE: rightMenu('M', ' ', ' ', ' '); break;
-    case MENU_TEMPO:
-      if (internalClock) {
-        rightMenu('I', 'N', 'T', ' ');
-      } else {
-        rightMenu('E', 'X', 'T', ' ');
-      }
-      break;
-    default: break;
+// One glyph of the right column; inverted (white box, black letter) when it is the cursor.
+void rightGlyph(byte row, char c, bool inverted) {
+  byte y = 9 * row;
+  display.setFont(NULL);
+  if (inverted) {
+    display.fillRect(119, y - 1, 7, 9, WHITE);
+    display.setTextColor(BLACK);
   }
+  display.setCursor(120, y);
+  display.print(c);
+  display.setTextColor(WHITE);
 }
 
-// left side menue - Channel Settings
-void drawChannelEditMenu(TopMenu select_ch, Setting select_menu) {
-  if (showOverlay) return;  // Exit
-  if (holdArrow) {          // the arrow takes the place of the setting name while holding
-    for (byte i = 0; i < 9; i++) display.drawFastVLine(holdArrow == 1 ? i : 8 - i, 36 + i, 17 - 2 * i, WHITE);
+// Right column: the channel number, H and O. The inverted one is the cursor (CH, HITS, OFFS).
+// From LIMI on there is no initial to mark: the name of the item is on the left.
+// RNDM and MUTE show only the number of the channel of their cursor; RSET and SYST show nothing.
+void drawRightColumn() {
+  if (showOverlay || systMode) return;
+  if (muteMode || rndmMode) {
+    rightGlyph(0, '1' + (muteMode ? muteCursor : rndmCursor), true);
     return;
   }
-  switch (select_menu) {
-    case SETTING_HITS: leftMenu('H', 'I', 'T', 'S'); break;
-    case SETTING_OFFSET: leftMenu('O', 'F', 'F', 'S'); break;
-    case SETTING_LIMIT: leftMenu('L', 'I', 'M', 'I'); break;
-    case SETTING_RESET: leftMenu('R', 'S', 'E', 'T'); break;
-    case SETTING_PROB: leftMenu('P', 'R', 'O', 'B'); break;
-    case SETTING_COND: leftMenu('C', 'O', 'N', 'D'); break;
-    case SETTING_XOX: leftMenu('X', 'O', 'X', ' '); break;
-    default: break;
-  }
+  if (nav >= NAV_RNDM) return;
+  rightGlyph(0, '1' + selected_menu, nav == NAV_CH);
+  rightGlyph(1, 'H', nav == NAV_HITS);
+  rightGlyph(2, 'O', nav == NAV_OFFS);
 }
 
-// left side menue - Menu Options
-void drawModeMenu(TopMenu select_ch) {
-  if (showOverlay) return;  // Exit
-  switch (select_ch) {
-    case MENU_SAVE: leftMenu('S', 'A', 'V', 'E'); break;
-    case MENU_LOAD: leftMenu('L', 'O', 'A', 'D'); break;
-    case MENU_ALL_RESET: leftMenu('R', 'S', 'E', 'T'); break;
-    case MENU_ALL_MUTE:
-      if (muteMode) {  // inside mute mode: MUTE inverted on a white strip
-        display.fillRect(0, 28, 7, 37, WHITE);
-        display.setTextColor(BLACK);
-        verticalMenu(1, 30, 'M', 'U', 'T', 'E');
-        display.setTextColor(WHITE);
-      } else {
-        leftMenu('M', 'U', 'T', 'E');
-      }
-      break;
-    case MENU_TEMPO: leftMenu('*', 'C', 'L', 'K'); break;
-    case MENU_RNDM:
-      if (rndmMode) {  // inside RNDM mode: RNDM inverted on a white strip, as MUTE
-        display.fillRect(0, 28, 7, 37, WHITE);
-        display.setTextColor(BLACK);
-        verticalMenu(1, 30, 'R', 'N', 'D', 'M');
-        display.setTextColor(WHITE);
-      }
-      break;
-    default: break;
+// Left column: the name of the item. The items that open with a long click (XOX, RNDM, MUTE, SYST, RSET)
+// are drawn inverted (white strip, black letters). On CH the BPM is shown.
+void leftName(char c1, char c2, char c3, char c4, bool closed) {
+  if (closed) {
+    display.fillRect(0, 28, 7, 37, WHITE);
+    display.setTextColor(BLACK);
+  }
+  verticalMenu(1, 30, c1, c2, c3, c4);
+  display.setTextColor(WHITE);
+}
+
+void drawLeftColumn() {
+  if (showOverlay || systMode) return;
+  switch (nav) {
+    case NAV_CH: drawBpmColumn(); break;
+    case NAV_HITS: leftName('H', 'I', 'T', 'S', false); break;
+    case NAV_OFFS: leftName('O', 'F', 'F', 'S', false); break;
+    case NAV_LIMI: leftName('L', 'I', 'M', 'I', false); break;
+    case NAV_RESET: leftName('R', 'S', 'E', 'T', false); break;
+    case NAV_PROB: leftName('P', 'R', 'O', 'B', false); break;
+    case NAV_COND: leftName('C', 'O', 'N', 'D', false); break;
+    case NAV_XOX: leftName('X', 'O', 'X', ' ', true); break;
+    case NAV_RNDM: leftName('R', 'N', 'D', 'M', true); break;
+    case NAV_MUTE: leftName('M', 'U', 'T', 'E', true); break;
+    case NAV_RSET: leftName('R', 'S', 'E', 'T', true); break;
+    case NAV_SYST: leftName('S', 'Y', 'S', 'T', true); break;
   }
 }
 
@@ -1371,17 +1268,6 @@ void checkAndInitializeSettings() {
   initializeDefaultRhythms();  // EEPROM without a known format: basic rhythm in every slot
   EEPROM.update(AUTOSAVE_ADDRESS, 0);  // no valid autosave yet
   EEPROM.put(FIRMWARE_MAGIC_ADDRESS, FIRMWARE_MAGIC);
-}
-
-void drawSelectionIndicator(Setting select_menu) {
-  if (showOverlay) return;
-  if (select_menu == SETTING_TOP_MENU) display.drawTriangle(113, 0, 113, 6, 118, 3, WHITE);
-  else if (select_menu == SETTING_HITS) display.drawTriangle(113, 9, 113, 15, 118, 12, WHITE);
-  else if (select_menu == SETTING_OFFSET) display.drawTriangle(113, 18, 113, 24, 118, 21, WHITE);
-
-  if (select_menu == SETTING_LIMIT) display.drawTriangle(12, 34, 12, 41, 7, 37, WHITE);
-  else if (select_menu == SETTING_RESET) display.drawTriangle(12, 50, 12, 57, 7, 53, WHITE);
-  // PROB has no triangle: it fell off the screen (row 66 of 64)
 }
 
 void drawStepDots(const SlotConfiguration &currentConfig) {
@@ -1422,18 +1308,19 @@ void OLED_display() {
 
 
 void drawMainScreen() {
-  drawTopMenuRight(selected_menu);
-  drawChannelEditMenu(selected_menu, selected_setting);
-  drawModeMenu(selected_menu);
-  if (!showOverlay && !holdArrow && selected_setting == SETTING_TOP_MENU && selected_menu <= MENU_CH_6) drawBpmColumn();
+  drawRightColumn();
+  drawLeftColumn();
 
-  drawSelectionIndicator(selected_setting);
+  if (systMode && !showOverlay) {
+    drawSystList();
+    return;
+  }
 
   if (selected_setting == SETTING_PROB) {
     drawProbabilityConfig();
   } else if (selected_setting == SETTING_COND) {
     drawBarSquares(barCond, selected_menu);
-  } else if (selected_menu == MENU_RNDM && selected_setting == SETTING_TOP_MENU && !showOverlay) {
+  } else if (nav == NAV_RNDM && !showOverlay) {
     drawBarSquares(rndmCond, rndmMode ? rndmCursor : -1);  // RNDM: the same squares as COND
   } else {
     drawStepDots(currentConfig);
@@ -1464,17 +1351,45 @@ void drawXoxCursor() {
 }
 
 void drawOverlay() {
-  if (selected_setting == SETTING_TOP_MENU) {
-    switch (selected_menu) {
-      case MENU_SAVE:
-      case MENU_LOAD:
-        drawSaveLoadSelection();
-        break;
-      case MENU_TEMPO:
-        drawTempo();
-        break;
+  if (!systMode) return;
+  if (sysItem < 2) drawSaveLoadSelection();
+  else if (sysItem == 2) drawClock();
+  else drawTempo();
+}
+
+// SYST list: the four entries, the selected one inverted, with their current value
+void drawSystList() {
+  for (byte i = 0; i < 4; i++) {
+    int y = 2 + i * 16;
+    bool sel = i == sysItem;
+    if (sel) display.fillRect(14, y - 1, 100, 15, WHITE);
+    display.setTextColor(sel ? BLACK : WHITE);
+    textAt(20, y, 2);
+    switch (i) {
+      case 0: display.print(F("SAVE")); break;
+      case 1: display.print(F("LOAD")); break;
+      case 2: display.print(F("CLOCK")); break;
+      case 3: display.print(F("BPM")); break;
+    }
+    if (i >= 2) {
+      textAt(84, y + 4);
+      if (i == 2) display.print(internalClock ? F("INT") : F("EXT"));
+      else display.print(internalClock ? tempo : externalBPM);
     }
   }
+  display.setTextColor(WHITE);
+}
+
+// CLOCK entry: turn switches between the internal and the external clock
+void drawClock() {
+  textAt(0, 0);
+  display.print(F("Clock"));
+  textAt(0, 14, 3);
+  display.print(internalClock ? F("INT") : F("EXT"));
+  textAt(0, 44);
+  display.print(F("turn: INT / EXT"));
+  textAt(0, 55);
+  display.print(F("click: close"));
 }
 
 void drawEuclideanRhythms() {
@@ -1513,7 +1428,7 @@ void drawEuclideanRhythms() {
   // Muted channel: filled white sticker with a black M (in LIMI the step count is shown instead)
   for (byte k = 0; k < MAX_CHANNELS; k++) {
     if (currentConfig.mute[k] && selected_setting != SETTING_LIMIT)
-      drawSticker(k, !((blinkMask >> k) & 1 && (millis() & 128)), 'M');  // parpadeo: relleno / borde
+      drawSticker(k, true, 'M');
   }
 
   // draw channel info in edit mode, should be helpful while editing.
@@ -1625,7 +1540,7 @@ void drawBarSquares(const byte *conds, int8_t selected) {
 //  Display selected slot
 void drawSaveLoadSelection() {
   textAt(0, 0);
-  display.print(selected_menu == MENU_SAVE ? F("Save to Slot") : F("Load from Slot"));
+  display.print(sysItem == 0 ? F("Save to Slot") : F("Load from Slot"));
   {
     numAt(0, 14, 2);
     display.print(selected_slot + 1, DEC);
@@ -1638,17 +1553,11 @@ void drawSaveLoadSelection() {
     if (nameEdit) display.drawFastHLine(44 + (nameEdit - 1) * 12, 31, 10, WHITE);  // letter being edited
     textAt(0, 35);
     if (nameEdit) display.print(F("Name: turn, click"));
-    else if (selected_menu == MENU_SAVE) display.print(used ? F("long PRESS Overwrite") : F("long PRESS Save"));
+    else if (sysItem == 0) display.print(used ? F("click to Overwrite") : F("click to Save"));
   }
-  if (selected_menu == MENU_LOAD) {
+  if (sysItem == 1) {
     textAt(0, 35);
-    display.print(F("long PRESS Load"));
-  }
-  // While held, a line fills under the text; when full, releasing saves or loads
-  if (!nameEdit && encoder.isPressed()) {
-    uint16_t d = encoder.currentDuration() >> 2;  // in 4 ms units
-    if (d > LONG_CLICK_MS / 4) d = LONG_CLICK_MS / 4;
-    display.drawFastHLine(0, 46, d + d / 4, WHITE);  // 375 ms -> ~116 px
+    display.print(F("click to Load"));
   }
 }
 
@@ -1689,7 +1598,7 @@ void drawTempo() {
       textAt(0, 0);
       display.print(F("Patch CLK or"));
       textAt(0, 13);
-      display.print(F("long press for"));
+      display.print(F("use CLOCK for"));
       textAt(0, 26);
       display.print(F("INT CLK"));
     } else {
