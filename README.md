@@ -76,7 +76,7 @@ arduino-cli compile -b arduino:avr:nano --build-property "build.extra_flags=-DSS
 arduino-cli upload  -b arduino:avr:nano -p <port> EucliXOX
 ```
 
-Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30708 of the 30720 bytes available with the old bootloader.
+Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30712 of the 30720 bytes available with the old bootloader.
 
 ## License
 

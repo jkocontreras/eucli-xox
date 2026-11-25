@@ -1205,14 +1205,14 @@ void drawMainScreen() {
 void drawBarStickers(const byte *conds, int8_t selected) {
   for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
     int cx = graph_x[ch] + 15, cy = graph_y[ch] + 15;
-    display.fillRect(cx - STICKER_Q - 1, cy - STICKER_Q - 1, 2 * STICKER_Q + 3, 2 * STICKER_Q + 3, BLACK);
+    display.fillRect(cx - STICKER_Q - 2, cy - STICKER_Q - 2, 2 * STICKER_Q + 5, 2 * STICKER_Q + 5, BLACK);
     byte m = pgm_read_byte(&barMask[conds[ch]]);
     for (byte i = 0; i < 4; i++) {
       int qx = cx - STICKER_Q + (i & 1) * (STICKER_Q + 1), qy = cy - STICKER_Q + (i >> 1) * (STICKER_Q + 1);
       if ((m >> i) & 1) display.fillRect(qx, qy, STICKER_Q, STICKER_Q, WHITE);
       else display.drawRect(qx, qy, STICKER_Q, STICKER_Q, WHITE);
     }
-    if (ch == selected) display.drawCircle(cx, cy, STICKER_Q + 6, WHITE);
+    if (ch == selected) display.drawRect(cx - STICKER_Q - 2, cy - STICKER_Q - 2, 2 * STICKER_Q + 5, 2 * STICKER_Q + 5, WHITE);
   }
 }
 

@@ -56,7 +56,7 @@ Each channel shows its probability as a donut that fills clockwise from the top,
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
 
 ## COND (which bars play)
-COND sets in which bars of a 4 bar cycle a channel plays. It is inspired by the trig conditions of Elektron sequencers. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a small square divided in 4 (9 px) as a sticker at the center of its ring, so the rhythm stays visible behind it. The quarters follow the reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. COND is a closed item: a long click opens it, and the number of the channel of the cursor appears inverted in the right column. Press and turn to change channel. A long click leaves the mode.
+COND sets in which bars of a 4 bar cycle a channel plays. It is inspired by the trig conditions of Elektron sequencers. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a small square divided in 4 (9 px) as a sticker at the center of its ring, so the rhythm stays visible behind it. The quarters follow the reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. COND is a closed item: a long click opens it, the channel of the cursor gets a frame around its sticker, and its number appears inverted in the right column. Press and turn to change channel. A long click leaves the mode.
 
 ![COND: channel 2 selected with bars 1 and 3 filled](images/cond.png)
 
@@ -85,7 +85,7 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 ![RNDM mode: a small square on each ring, cursor on channel 3](images/rndm.png)
 
 - RNDM shows the same small square as COND, as a sticker at the center of each ring, with one quarter per bar of the 4 bar cycle. A filled quarter means that the channel changes its hits and offset at random at the start of that bar. An empty quarter means no change in that bar.
-- Go to **RNDM** in the chain to see the squares. A long click opens the mode: the channel of the cursor gets a thin ring around its sticker and its number appears inverted in the right column.
+- Go to **RNDM** in the chain to see the squares. A long click opens the mode: the channel of the cursor gets a frame around its sticker and its number appears inverted in the right column.
 - Inside the mode, turn to go through the 16 combinations of the channel, from 0000 (never) to XXXX (every bar), in the same order as COND. Press and turn to change channel. A long click leaves the mode.
 - Examples: X000 changes the channel once every 4 bars, X0X0 in bars 1 and 3, XXXX in every bar.
 - The default is 0000 on every channel. The combinations stay active while you work on other items. They are saved in the memory slots and in the autosave, like COND: at power-up they come back as they were, and a slot saved before RNDM existed reads as 0000 on every channel.
