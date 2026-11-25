@@ -26,14 +26,14 @@ The right column of the screen shows the selected channel as **1HO** … **6HO**
 | **LIMT** | LIMT | changes the number of steps |
 | **RESET** | RESET | sends the channel back to its first step |
 | **PROB** | PROB | changes the probability of the channel, see PROB |
-| **COND** | COND | goes through the 16 combinations of bars, see COND |
+| **COND** (closed) | COND | nothing |
 | **XOX** (closed) | XOX | nothing |
 | **RNDM** (closed) | RNDM | nothing |
 | **MUTE** (closed) | MUTE | nothing |
 | **RSET** (closed) | RSET | nothing |
 | **SYST** (closed) | SYST | nothing |
 
-From XOX on there is no number to change. Turning does nothing there, and the chain is moved only with clicks and double clicks. To change the channel on those items, press and turn.
+From COND on there is no number to change. Turning does nothing there, and the chain is moved only with clicks and double clicks. To change the channel on those items, press and turn.
 
 ### Closed items
 The items that open with a long click have their name inverted on the left (white strip, black letters). RSET is also drawn inverted: a long click runs the reset of all channels and stays in the chain.
@@ -53,11 +53,11 @@ Each channel shows its probability as a donut that fills clockwise from the top,
 ![PROB: probability donuts, channel 6 selected](images/prob.png)
 
 ## COND (which bars play)
-COND sets in which bars of a 4 bar cycle a channel plays. It is inspired by the trig conditions of Elektron sequencers. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a small square divided in 4 (9 px) as a sticker at the center of its ring, so the rhythm stays visible behind it. The quarters follow the reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. The selected channel has a thin ring around its sticker.
+COND sets in which bars of a 4 bar cycle a channel plays. It is inspired by the trig conditions of Elektron sequencers. A bar is 16 clocks, one turn of the ring, and the cycle repeats every 4 bars. Each channel shows a small square divided in 4 (9 px) as a sticker at the center of its ring, so the rhythm stays visible behind it. The quarters follow the reading order (top left bar 1, top right bar 2, bottom left bar 3, bottom right bar 4). A filled quarter plays in that bar and an empty quarter is only outlined. COND is a closed item: a long click opens it, and the number of the channel of the cursor appears inverted in the right column. Press and turn to change channel. A long click leaves the mode.
 
 ![COND: channel 2 selected with bars 1 and 3 filled](images/cond.png)
 
-Turn to go through the 16 combinations, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMT or XOX) is the same in every bar; COND only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before COND read as XXXX.
+Inside the mode, turn to go through the 16 combinations of the channel, ordered by number of filled quarters: 0000 (never), X000, 0X00, 00X0, 000X, XX00, 0XX0, 00XX, X0X0, 0X0X, X00X, XXX0, 0XXX, XX0X, X0XX, XXXX (every bar, the default). X0X0 and 0X0X make a channel play every other bar, so two channels can take turns. The pattern of the channel (HITS, OFFS, LIMT or XOX) is the same in every bar; COND only decides whether it sounds. RESET restarts the count at bar 1. It is saved in the memory slots and in the autosave; slots saved before COND read as XXXX.
 
 ## XOX (step programming)
 XOX is a closed item: a long click opens it on the selected channel.
@@ -170,7 +170,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Interface**
 - The screen uses OLED4x7, a 4x7 pixel uppercase font by Contrafonts, custom designed for this firmware (`EucliXOX/Font4x7.h`, source font in `fonts/OLED4x7-Regular.ttf`, SIL Open Font License 1.1), so all texts are uppercase.
-- One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (XOX, RNDM, MUTE, SYST) or runs RSET. The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
+- One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (COND, XOX, RNDM, MUTE, SYST) or runs RSET. The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
 - Turning changes the number of the item. Press and turn changes channel on any item.
 - SYST groups SAVE, LOAD, CLOCK and BPM. SAVE and LOAD confirm by choosing the underlined word (CANCEL or the action) with a click, instead of holding the encoder.
 - The cursor is an inverted letter in the right column (the channel number, H or O). Closed items have their name inverted on the left.
