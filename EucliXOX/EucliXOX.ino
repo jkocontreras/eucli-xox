@@ -189,6 +189,8 @@ byte nav = NAV_CH;
 bool xoxMode = false;  // XOX open
 bool systMode = false;  // SYST open (showOverlay = an entry of SYST is open)
 byte sysItem = 0;       // 0 SAVE, 1 LOAD, 2 CLOCK, 3 BPM
+bool confirming = false;  // SAVE/LOAD, second step: the line shows CANCEL and the action, turn chooses, click runs
+bool confirmYes = false;  // the action word is the underlined one (false = CANCEL)
 byte selected_slot = 0;
 bool disp_refresh = true;
 bool force_refresh = true;
@@ -519,7 +521,9 @@ void Random_change(byte k) {
   currentConfig.offset[k] = o;
 }
 
+// Only the name entry closes by itself after the idle time (it stores the name); the open items stay open.
 void onOverlayTimeout(EncoderButton &eb) {
+  if (!nameEdit) return;
   finishName();
   disp_refresh = true;
 }
@@ -791,13 +795,17 @@ void onEncoderClicked(EncoderButton &eb) {
   } else if (systMode) {
     if (!showOverlay) {
       showOverlay = true;  // open the entry
-    } else if (sysItem == 0) {  // SAVE: confirm, then the slot is named
+      confirming = false;
+    } else if (sysItem < 2 && !confirming) {  // SAVE and LOAD, slot chosen: the line becomes CANCEL and the action
+      confirming = true;
+      confirmYes = false;
+    } else if (sysItem == 0 && confirmYes) {  // SAVE: the slot is saved, then named
       bool used = slotUsed(selected_slot);
       saveToEEPROM(selected_slot);
       for (byte k = 0; k < 3; k++) nameBuf[k] = used ? nameChar(selected_slot, k) : '-';
       nameEdit = 1;
-    } else {  // LOAD: confirm; CLOCK and BPM: close
-      if (sysItem == 1) {
+    } else {  // LOAD with the action underlined: load; CANCEL, CLOCK and BPM: close
+      if (sysItem == 1 && confirmYes) {
         loadFromEEPROM(selected_slot);
         leaveSyst();  // after loading, go straight to the first item to play
       }
@@ -871,6 +879,8 @@ void sysTurn(int increment, int accelerated) {
       char *c = &nameBuf[nameEdit - 1];
       byte i = (const char *)strchr_P(NAME_CHARS, *c) - NAME_CHARS;
       *c = pgm_read_byte(&NAME_CHARS[(i + increment + NUM_NAME_CHARS) % NUM_NAME_CHARS]);
+    } else if (confirming) {  // turning moves the underline between CANCEL and the action
+      confirmYes = !confirmYes;
     } else {
       selected_slot = (selected_slot + increment + NUM_MEMORY_SLOTS) % NUM_MEMORY_SLOTS;
     }
@@ -1580,11 +1590,13 @@ void drawSaveLoadSelection() {
     }
     textAt(0, 35);
     if (nameEdit) display.print(F("NAME TURN CLICK"));
-    else if (sysItem == 0) display.print(used ? F("CLICK TO OVERWRITE") : F("CLICK TO SAVE"));
-  }
-  if (sysItem == 1) {
-    textAt(0, 35);
-    display.print(F("CLICK TO LOAD"));
+    else if (confirming) {  // CANCEL and the action, the chosen one underlined
+      display.print(F("CANCEL"));
+      textAt(40, 35);
+      display.print(sysItem == 0 ? F("SAVE") : F("LOAD"));
+      display.drawFastHLine(confirmYes ? 40 : 0, 44, confirmYes ? 19 : 29, WHITE);
+    } else if (sysItem == 0) display.print(used ? F("CLICK TO OVERWRITE") : F("CLICK TO SAVE"));
+    else display.print(F("CLICK TO LOAD"));
   }
 }
 

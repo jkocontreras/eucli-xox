@@ -100,10 +100,10 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 
 ## Memory
 
-![Load screen with slot number, saved indicator and name](images/load.png) ![Naming a slot after saving](images/save-name.png)
+![Load screen with slot number, saved indicator and name](images/load.png) ![Load confirmation: CANCEL and LOAD, one underlined](images/load-confirm.png) ![Naming a slot after saving](images/save-name.png)
 
 - **Working state:** the current state is saved automatically 10 seconds after the last encoder action, and it comes back at power-up. It is written one byte per loop pass, so playback keeps running while it saves.
-- **SAVE and LOAD** are entries of **SYST**. Open SYST with a long click, turn to choose SAVE or LOAD and click to open it. Turn to choose one of 20 slots and click again to confirm: it saves or loads. A long click leaves without confirming. After LOAD, and after closing the name in SAVE, SYST closes and the cursor goes to the first item (CH), ready to play.
+- **SAVE and LOAD** are entries of **SYST**. Open SYST with a long click, turn to choose SAVE or LOAD and click to open it. Turn to choose one of 20 slots and click: the bottom line becomes CANCEL and SAVE (or LOAD), with one of the two underlined. Turn to move the underline and click to run it. On CANCEL the window closes and nothing is saved or loaded. A long click also leaves. After LOAD, and after closing the name in SAVE, SYST closes and the cursor goes to the first item (CH), ready to play.
 
 ![The SYST list](images/syst.png)
 
@@ -172,7 +172,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 - The screen uses OLED4x7, a 4x7 pixel uppercase font by Contrafonts, custom designed for this firmware (`EucliXOX/Font4x7.h`, source font in `fonts/OLED4x7-Regular.ttf`, SIL Open Font License 1.1), so all texts are uppercase.
 - One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (XOX, RNDM, MUTE, SYST) or runs RSET. The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
 - Turning changes the number of the item. Press and turn changes channel on any item.
-- SYST groups SAVE, LOAD, CLOCK and BPM. SAVE and LOAD confirm with a click instead of holding the encoder.
+- SYST groups SAVE, LOAD, CLOCK and BPM. SAVE and LOAD confirm by choosing the underlined word (CANCEL or the action) with a click, instead of holding the encoder.
 - The cursor is an inverted letter in the right column (the channel number, H or O). Closed items have their name inverted on the left.
 
 **Display**
