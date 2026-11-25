@@ -1355,7 +1355,7 @@ void drawMainScreen() {
 // It is small (11 px) and sits at the center of each ring over a black backing, so that the rhythm stays
 // visible behind. The channel of the cursor gets a thin ring, like the mute cursor.
 #ifndef STICKER_Q
-#define STICKER_Q 3  // side of a quarter in pixels: the sticker is 2 * STICKER_Q + 1 pixels wide (3 = 7 px, 4 = 9 px, 5 = 11 px)
+#define STICKER_Q 4  // side of a quarter in pixels: the sticker is 2 * STICKER_Q + 1 pixels wide (3 = 7 px, 4 = 9 px, 5 = 11 px)
 #endif
 void drawBarStickers(const byte *conds, int8_t selected) {
   for (byte ch = 0; ch < MAX_CHANNELS; ch++) {
