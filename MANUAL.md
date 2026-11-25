@@ -90,11 +90,13 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 - Examples: X000 changes the channel once every 4 bars, X0X0 in bars 1 and 3, XXXX in every bar.
 - The default is 0000 on every channel. The combinations stay active while you work on other items. They are saved in the memory slots and in the autosave, like COND: at power-up they come back as they were, and a slot saved before RNDM existed reads as 0000 on every channel.
 - The change needs the clock to run (internal or external), since bars are counted with the clock pulses.
+- **Range of the hits:** the random stays near the number of hits that you set. It picks a value within 3 above or below it, never under 1 or over 16, and always with at least 6 possible values: with 6 hits it picks from 3 to 9, with 13 from 10 to 16, and with 1 or 3 from 1 to 6. The number you set is the anchor: the random always moves around it and does not drift away. Changing the hits by hand, editing XOX or loading a slot sets a new anchor. The offset is chosen from 0 to 15.
+- **XOX channels:** the drawing stays as it is and only the offset changes at random.
 - The random changes do not touch the mutes. A channel that was muted stays muted.
 
 ## Reset (RSET)
 
-RSET resets the rhythm. A long click opens it with the cursor on the selected channel. Turn to move the cursor through channels 1 to 6 and ALL, and click to reset. A channel goes back to its first step; ALL resets every channel and the bar count of COND and RNDM, like the RESET input of the module. The selected channel has a thin ring. A long click leaves.
+RSET resets the rhythm. A long click opens it with the cursor on the selected channel. Turn to move the cursor through channels 1 to 6 and ALL, and click to reset. A channel goes back to its first step; ALL resets every channel and the bar count of COND and RNDM, like the RESET input of the module. The channel of the cursor shows a circle with an R at the center of its ring. A long click leaves.
 
 ![RSET with the cursor on channel 3](images/rset.png) ![RSET with the cursor on ALL](images/rset-all.png)
 
@@ -167,7 +169,7 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 **Sequencing**
 - XOX step programming mode per channel.
 - COND: each channel plays in the bars of a 4 bar cycle that you choose (16 combinations).
-- RNDM: each channel changes its hits and offset at random in the bars of a 4 bar cycle that you choose (16 combinations, as COND). It replaces the original RND (auto advance over 2 to 16 bars, all channels) and X (random change of all channels) items.
+- RNDM: each channel changes its hits (near the number you set) and its offset at random in the bars of a 4 bar cycle that you choose (16 combinations, as COND). It replaces the original RND (auto advance over 2 to 16 bars, all channels) and X (random change of all channels) items.
 - MUTE was removed from the channel settings; channels are muted only from mute mode (MUTE).
 - Mute mode, and a global cut inside it that restores the previous mutes. The full-screen MUTE view was removed.
 

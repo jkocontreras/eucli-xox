@@ -411,16 +411,24 @@ void setupPinChangeInterrupts() {
   sei();
 }
 
+// RNDM keeps the hits near the number the user set (homeHits): +-3, at least 6 values, inside 1 to 16.
+// A channel in XOX keeps its drawing and only gets a new offset.
+byte homeHits[MAX_CHANNELS];
+
 void Random_change(byte k) {
-  byte h;
-  do {
-    h = random(1, MAX_PATTERNS);
-  } while (h == currentConfig.hits[k]);
-  xoxMask &= ~(1 << k);
-  currentConfig.hits[k] = h;
+  if (!isXox(k)) {
+    byte c = homeHits[k];
+    byte lo = c < 4 ? 1 : c > 13 ? 11 : c - 3;
+    byte n = c < 4 || c > 13 ? 6 : 7;
+    byte h;
+    do {
+      h = lo + random(n);
+    } while (h == currentConfig.hits[k]);
+    currentConfig.hits[k] = h;
+  }
   byte o;
   do {
-    o = random(0, MAX_STEPS);
+    o = random(MAX_STEPS);
   } while (o == currentConfig.offset[k]);
   currentConfig.offset[k] = o;
 }
@@ -701,11 +709,9 @@ void onEncoderClicked(EncoderButton &eb) {
     if (muteCursor < MAX_CHANNELS) {
       currentConfig.mute[muteCursor] = !currentConfig.mute[muteCursor];
       cutMask = 0;
-    } else if (cutMask) {
-      setMutes(mutedMask() & ~cutMask);
+    } else if (cutMask || mutedMask() == 0x3F) {
+      setMutes(cutMask ? mutedMask() & ~cutMask : 0);
       cutMask = 0;
-    } else if (mutedMask() == 0x3F) {
-      setMutes(0);
     } else {
       cutMask = ~mutedMask() & 0x3F;
       setMutes(0x3F);
@@ -918,6 +924,7 @@ void unpackConfig(const StoredConfig &s) {
     barCond[c] = (s.offset[c] >> 4) ^ BAR_ALL;
     rndmCond[c] = (s.hits[c] >> 5) | ((s.probability[c] >> 7) << 3);
     currentConfig.hits[c] = (s.hits[c] & 31) < MAX_PATTERNS ? (s.hits[c] & 31) : 0;
+    homeHits[c] = currentConfig.hits[c];
     currentConfig.offset[c] = (s.offset[c] & 15) % MAX_STEPS;
     currentConfig.limit[c] = s.limit[c];
     currentConfig.probability[c] = (s.probability[c] & 127) <= 100 ? (s.probability[c] & 127) : 100;
@@ -940,6 +947,7 @@ void handleSettingNavigation(int changeDirection) {
     case SETTING_HITS:
       leaveXox(selected_menu);
       currentConfig.hits[selected_menu] = (currentConfig.hits[selected_menu] + changeDirection + MAX_PATTERNS) % MAX_PATTERNS;
+      homeHits[selected_menu] = currentConfig.hits[selected_menu];
       break;
     case SETTING_OFFSET:
       currentConfig.offset[selected_menu] = (currentConfig.offset[selected_menu] - changeDirection + MAX_STEPS) % MAX_STEPS;
@@ -1180,7 +1188,7 @@ void drawMainScreen() {
     drawXoxCursor();
     if (nav == NAV_COND) drawBarStickers(barCond, selected_menu);
     else if (nav == NAV_RNDM && !showOverlay) drawBarStickers(rndmCond, rndmMode ? rndmCursor : -1);
-    if (rstMode && rstCursor < MAX_CHANNELS) display.drawCircle(graph_x[rstCursor] + 15, graph_y[rstCursor] + 15, 16, WHITE);
+    if (rstMode && rstCursor < MAX_CHANNELS) drawSticker(rstCursor, false, 'R');
     if (muteMode && muteCursor < MAX_CHANNELS) {
       if (currentConfig.mute[muteCursor]) {
         display.drawCircle(graph_x[muteCursor] + 15, graph_y[muteCursor] + 15, 11, WHITE);
