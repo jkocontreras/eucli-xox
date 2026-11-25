@@ -22,7 +22,7 @@ This is an unofficial firmware. It is not made or supported by Modulove or HAGIW
 ## Quick start
 
 1. Flash `hex/EucliXOX_normal.hex` (or `hex/EucliXOX_reversed.hex` if your encoder turns the other way). See below.
-2. Click moves to the next item, double click to the previous one, a long click (0.3 s) opens the closed items (XOX, RNDM, MUTE, SYST). Turn changes the number of the item, and press and turn changes channel.
+2. Click moves to the next item, double click to the previous one, a long click (0.3 s) opens the closed items (XOX, MUTE, COND, RNDM, RSET, SYST). Turn changes the number of the item, and press and turn changes channel.
 3. Start the clock (internal or external) and load a preset: SYST, LOAD, slots 1 to 9.
 
 ## Credits: what comes from where
@@ -76,7 +76,7 @@ arduino-cli compile -b arduino:avr:nano --build-property "build.extra_flags=-DSS
 arduino-cli upload  -b arduino:avr:nano -p <port> EucliXOX
 ```
 
-Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30664 of the 30720 bytes available with the old bootloader.
+Add `-DENCODER_REVERSED` to the flags for a reversed encoder. Nanos with the old bootloader use `-b arduino:avr:nano:cpu=atmega328old`. With the flag, the firmware uses 30654 of the 30720 bytes available with the old bootloader.
 
 ## License
 

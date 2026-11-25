@@ -13,37 +13,40 @@ All the items are in one cyclic chain. A **click** goes to the next item and a *
 | **Press and turn** | Changes channel, on any item. |
 | **Click** | Next item. |
 | **Double click** | Previous item. |
-| **Long click** | Opens a closed item, runs RSET, and closes the mode that is open. |
+| **Long click** | Opens a closed item and closes the mode that is open. |
 
 ### The chain
-The right column of the screen shows the selected channel as **1HO** … **6HO**: the number, then H (hits) and O (offset). On the first three items, the letter you are on is drawn inverted (white box, black letter). From LIMT on there is no initial to mark, and the name of the item is on the left.
+The right column of the screen shows the selected channel as **1HO** … **6HO**: the number, then H (hits) and O (offset). On the first three items, the letter you are on is drawn inverted (white box, black letter). From XOX on there is no initial to mark, and the name of the item is on the left.
 
 | Item | Left column | Turning |
 |---|---|---|
 | **CH**, the channel (number inverted) | the BPM, written vertically | changes the channel |
 | **HITS** (H inverted) | HITS | changes the hits of the channel |
 | **OFFS** (O inverted) | OFFS | rotates the pattern |
-| **LIMT** | LIMT | changes the number of steps |
-| **RESET** | RESET | sends the channel back to its first step |
-| **PROB** | PROB | changes the probability of the channel, see PROB |
-| **COND** (closed) | COND | nothing |
 | **XOX** (closed) | XOX | nothing |
-| **RNDM** (closed) | RNDM | nothing |
 | **MUTE** (closed) | MUTE | nothing |
+| **LIMT** | LIMT | changes the number of steps |
+| **COND** (closed) | COND | nothing |
+| **RNDM** (closed) | RNDM | nothing |
+| **PROB** | PROB | changes the probability of the channel, see PROB |
 | **RSET** (closed) | RSET | nothing |
 | **SYST** (closed) | SYST | nothing |
 
-From COND on there is no number to change. Turning does nothing there, and the chain is moved only with clicks and double clicks. To change the channel on those items, press and turn.
+The order puts what is played first: the channel, hits and offset, then XOX and the mutes, then the settings that decide whether a step sounds (LIMT, COND, RNDM, PROB), and at the end the reset and the system list. On the closed items turning does nothing until they are opened. To change the channel on any item, press and turn.
 
 ### Closed items
-The items that open with a long click have their name inverted on the left (white strip, black letters). RSET is also drawn inverted: a long click runs the reset of all channels and stays in the chain.
+The items that open with a long click have their name inverted on the left (white strip, black letters).
 
 | Item | Long click opens | Inside the mode |
 |---|---|---|
 | **XOX** | step programming of the selected channel | turn moves the cursor, click toggles the step, press and turn changes channel |
+| **MUTE** | mute mode | turn moves the cursor through channels 1 to 6 and ALL, click mutes or unmutes the channel, or all (ALL) |
+| **COND** | bars where each channel plays | turn goes through the 16 combinations of the channel, press and turn changes channel |
 | **RNDM** | timed random | turn goes through the 16 combinations of the channel, press and turn changes channel |
-| **MUTE** | mute mode | turn chooses a channel, click mutes or unmutes it, press and turn makes the global cut |
+| **RSET** | reset | turn moves the cursor through channels 1 to 6 and ALL, click resets the channel, or all (ALL) |
 | **SYST** | system list: SAVE, LOAD, CLOCK, BPM | turn chooses the entry, click opens it |
+
+In MUTE and RSET the cursor is the number of the channel in the right column, inverted. On ALL the column shows A, L, L, inverted, in the same three rows.
 
 Inside any mode a long click leaves it and the cursor stays on that item. While a mode is open, a click answers at once. In the chain, a click waits 220 ms to tell whether it is a double click (`MULTI_CLICK_MS` in the source).
 
@@ -89,12 +92,18 @@ The first edit switches the channel to XOX and starts from the euclidean pattern
 - The change needs the clock to run (internal or external), since bars are counted with the clock pulses.
 - The random changes do not touch the mutes. A channel that was muted stays muted.
 
+## Reset (RSET)
+
+RSET resets the rhythm. A long click opens it with the cursor on the selected channel. Turn to move the cursor through channels 1 to 6 and ALL, and click to reset. A channel goes back to its first step; ALL resets every channel and the bar count of COND and RNDM, like the RESET input of the module. The selected channel has a thin ring. A long click leaves.
+
+![RSET with the cursor on channel 3](images/rset.png) ![RSET with the cursor on ALL](images/rset-all.png)
+
 ## Mute (MUTE)
 
-![Mute mode: channels 2 and 6 muted, cursor on channel 4](images/mute-mode.png) ![Global cut: all channels muted](images/mute-cut.png)
+![Mute mode: channels 2 and 6 muted, cursor on channel 4](images/mute-mode.png) ![Cursor on ALL](images/mute-all.png)
 
-- Go to **MUTE** in the chain and open it with a long click. Turn to choose a channel and click to mute or unmute it. A long click leaves: the mutes stay as they are.
-- **Global cut**, inside the mode with press and turn: to the right it mutes all channels and remembers the previous mix. To the left it restores that mix. If there is no stored mix, to the left it unmutes all channels.
+- Go to **MUTE** in the chain and open it with a long click. Turn to move the cursor through channels 1 to 6 and ALL, and click to mute or unmute the channel. A long click leaves: the mutes stay as they are.
+- **ALL** is the global cut: a click mutes all channels and remembers the previous mix, and the next click on ALL restores that mix. If every channel was muted by hand, a click on ALL unmutes all.
 - Changing a mute by hand clears the stored mix.
 - A muted channel is drawn as a white circle with a black M.
 
@@ -170,8 +179,10 @@ The euclidean examples are based on Godfried Toussaint, "The Euclidean Algorithm
 
 **Interface**
 - The screen uses OLED4x7, a 4x7 pixel uppercase font by Contrafonts, custom designed for this firmware (`EucliXOX/Font4x7.h`, source font in `fonts/OLED4x7-Regular.ttf`, SIL Open Font License 1.1), so all texts are uppercase.
-- One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (COND, XOX, RNDM, MUTE, SYST) or runs RSET. The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
+- One cyclic chain of items: click goes to the next, double click to the previous, and long click opens the items marked as closed (XOX, MUTE, COND, RNDM, RSET, SYST). The original menus (a main menu with channels, RND, X, S, L, T, R and M, and a channel menu) were replaced.
 - Turning changes the number of the item. Press and turn changes channel on any item.
+- The order of the chain is CH, HITS, OFFS, XOX, MUTE, LIMT, COND, RNDM, PROB, RSET, SYST. The per channel RESET item was replaced by RSET, which resets one channel or all of them.
+- MUTE and RSET choose the channel or ALL with the cursor, and ALL is written in the right column. The global cut with press and turn was replaced by ALL.
 - SYST groups SAVE, LOAD, CLOCK and BPM. SAVE and LOAD confirm by choosing the underlined word (CANCEL or the action) with a click, instead of holding the encoder.
 - The cursor is an inverted letter in the right column (the channel number, H or O). Closed items have their name inverted on the left.
 

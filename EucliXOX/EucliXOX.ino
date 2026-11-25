@@ -77,33 +77,33 @@ enum TopMenu {
 };
 
 enum Setting {
-  SETTING_TOP_MENU,
-  SETTING_HITS,
-  SETTING_OFFSET,
-  SETTING_LIMIT,
-  SETTING_RESET,
-  SETTING_PROB,
-  SETTING_COND,
-  SETTING_XOX
+  SETTING_TOP_MENU = 0,
+  SETTING_HITS = 1,
+  SETTING_OFFSET = 2,
+  SETTING_XOX = 3,
+  SETTING_LIMIT = 5,
+  SETTING_COND = 6,
+  SETTING_PROB = 8
 };
 
-// One cyclic chain. Click: next. Double click: previous. Long click: opens COND, XOX, RNDM, MUTE, SYST, runs RSET, closes an open mode.
-// Press and turn: change channel.
+// One cyclic chain. Click: next. Double click: previous. Long click: opens XOX, MUTE, COND, RNDM, RSET, SYST, and closes an open mode.
+// Press and turn: change channel. The values of NAV_ and SETTING_ match for the items that have a number.
 enum Nav : byte {
   NAV_CH,
   NAV_HITS,
   NAV_OFFS,
-  NAV_LIMI,
-  NAV_RESET,
-  NAV_PROB,
-  NAV_COND,
   NAV_XOX,
-  NAV_RNDM,
   NAV_MUTE,
+  NAV_LIMI,
+  NAV_COND,
+  NAV_RNDM,
+  NAV_PROB,
   NAV_RSET,
   NAV_SYST,
   NAV_LAST
 };
+#define CLOSED_ITEMS 0x6D8
+const char navNames[] PROGMEM = "    HITSOFFSXOX MUTELIMTCONDRNDMPROBRSETSYST";
 #define MULTI_CLICK_MS 220
 
 #define FIRMWARE_MAGIC "EUCLID11"
@@ -134,8 +134,14 @@ byte barIdx = 3;
 TopMenu selected_menu = MENU_CH_1;
 Setting selected_setting = SETTING_TOP_MENU;
 byte nav = NAV_CH;
-bool xoxMode = false;
-bool systMode = false;
+// A closed item is open when `opened` is set while the cursor is on it (only one at a time).
+bool opened = false;
+#define xoxMode (opened && nav == NAV_XOX)
+#define muteMode (opened && nav == NAV_MUTE)
+#define condMode (opened && nav == NAV_COND)
+#define rndmMode (opened && nav == NAV_RNDM)
+#define rstMode (opened && nav == NAV_RSET)
+#define systMode (opened && nav == NAV_SYST)
 byte sysItem = 0;
 byte confirming = 0;
 byte selected_slot = 0;
@@ -144,12 +150,10 @@ bool force_refresh = true;
 
 byte cutMask = 0;
 
-bool condMode = false;
 
-bool muteMode = false;
 byte muteCursor = 0;
+byte rstCursor = 0;
 
-bool rndmMode = false;
 byte rndmCursor = 0;
 byte rndmCond[6] = { 0, 0, 0, 0, 0, 0 };
 bool internalClock = false;
@@ -649,14 +653,15 @@ bool isClockRunning() {
   return internalClock || (millis() - last_clock_input < period);
 }
 
-bool inMode() {
-  return xoxMode || muteMode || rndmMode || condMode || systMode;
+void syncNav() {
+  bool hasNumber = ((0x126 >> nav) & 1) || ((xoxMode || condMode));
+  selected_setting = hasNumber ? static_cast<Setting>(nav) : SETTING_TOP_MENU;
+  encoder.setMultiClickInterval(opened ? 20 : MULTI_CLICK_MS);
+  disp_refresh = true;
 }
 
-void syncNav() {
-  selected_setting = nav < NAV_COND ? static_cast<Setting>(nav) : (nav == NAV_COND && condMode ? SETTING_COND : (nav == NAV_XOX && xoxMode ? SETTING_XOX : SETTING_TOP_MENU));
-  encoder.setMultiClickInterval(inMode() ? 20 : MULTI_CLICK_MS);
-  disp_refresh = true;
+void moveCursor(byte &c, int dir) {
+  c = (c + (dir > 0 ? 1 : MAX_CHANNELS)) % (MAX_CHANNELS + 1);
 }
 
 void changeChannel(int dir) {
@@ -693,8 +698,21 @@ void onEncoderClicked(EncoderButton &eb) {
   } else if (xoxMode) {
     toggleXoxStep(selected_menu);
   } else if (muteMode) {
-    currentConfig.mute[muteCursor] = !currentConfig.mute[muteCursor];
-    cutMask = 0;
+    if (muteCursor < MAX_CHANNELS) {
+      currentConfig.mute[muteCursor] = !currentConfig.mute[muteCursor];
+      cutMask = 0;
+    } else if (cutMask) {
+      setMutes(mutedMask() & ~cutMask);
+      cutMask = 0;
+    } else if (mutedMask() == 0x3F) {
+      setMutes(0);
+    } else {
+      cutMask = ~mutedMask() & 0x3F;
+      setMutes(0x3F);
+    }
+  } else if (rstMode) {
+    if (rstCursor < MAX_CHANNELS) playing_step[rstCursor] = 15;
+    else resetSeq();
   } else if (rndmMode || condMode) {
 
   } else {
@@ -704,7 +722,7 @@ void onEncoderClicked(EncoderButton &eb) {
 }
 
 void onEncoderDoubleClicked(EncoderButton &eb) {
-  if (inMode()) {
+  if (opened) {
     onEncoderClicked(eb);
     onEncoderClicked(eb);
     return;
@@ -723,30 +741,15 @@ void onEncoderLongClicked(EncoderButton &eb) {
 
   if (nameEdit) {
     finishName();
-  } else if (systMode) {
-    if (showOverlay) showOverlay = false;
-    else systMode = false;
-  } else if (xoxMode) {
-    xoxMode = false;
-  } else if (muteMode) {
-    muteMode = false;
-  } else if (rndmMode) {
-    rndmMode = false;
-  } else if (condMode) {
-    condMode = false;
-  } else {
-    switch (nav) {
-      case NAV_XOX: xoxMode = true; break;
-      case NAV_RNDM: rndmMode = true; break;
-      case NAV_COND: condMode = true; break;
-      case NAV_MUTE: muteMode = true; break;
-      case NAV_RSET: resetSeq(); break;
-      case NAV_SYST:
-        systMode = true;
-        sysItem = 0;
-        showOverlay = false;
-        break;
-    }
+  } else if (systMode && showOverlay) {
+    showOverlay = false;
+  } else if (opened) {
+    opened = false;
+  } else if ((CLOSED_ITEMS >> nav) & 1) {
+    opened = true;
+    rstCursor = selected_menu;
+    sysItem = 0;
+    showOverlay = false;
   }
   syncNav();
 }
@@ -780,8 +783,8 @@ void onEncoderRotation(EncoderButton &eb) {
   markChange();
   disp_refresh = true;
 
-  if (muteMode) {
-    muteCursor = (muteCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
+  if (muteMode || rstMode) {
+    moveCursor(muteMode ? muteCursor : rstCursor, increment);
     return;
   }
   if (rndmMode) {
@@ -796,7 +799,7 @@ void onEncoderRotation(EncoderButton &eb) {
     sysTurn(increment, acceleratedIncrement);
   } else if (nav == NAV_CH) {
     changeChannel(increment);
-  } else if (nav < NAV_COND || xoxMode || condMode) {
+  } else if (selected_setting != SETTING_TOP_MENU) {
     handleSettingNavigation(acceleratedIncrement);
   }
 
@@ -808,18 +811,8 @@ void onEncoderPressedRotation(EncoderButton &eb) {
   markChange();
   disp_refresh = true;
 
-  if (muteMode) {
-    if (increment > 0) {
-      if (!cutMask) {
-        cutMask = ~mutedMask() & 0x3F;
-        setMutes(0x3F);
-      }
-    } else if (cutMask) {
-      setMutes(mutedMask() & ~cutMask);
-      cutMask = 0;
-    } else {
-      setMutes(0);
-    }
+  if (muteMode || rstMode) {
+    moveCursor(muteMode ? muteCursor : rstCursor, increment);
   } else if (rndmMode) {
     rndmCursor = (rndmCursor + (increment > 0 ? 1 : MAX_CHANNELS - 1)) % MAX_CHANNELS;
   } else if (!systMode) {
@@ -954,9 +947,6 @@ void handleSettingNavigation(int changeDirection) {
     case SETTING_LIMIT:
       currentConfig.limit[selected_menu] = (currentConfig.limit[selected_menu] + changeDirection + MAX_PATTERNS) % MAX_PATTERNS;
       break;
-    case SETTING_RESET:
-      playing_step[selected_menu] = 0;
-      break;
     case SETTING_PROB:
       currentConfig.probability[selected_menu] = (currentConfig.probability[selected_menu] + changeDirection + 101) % 101;
       break;
@@ -1024,7 +1014,7 @@ char nameChar(byte slot, byte k) {
 }
 
 void leaveSyst() {
-  systMode = false;
+  opened = false;
   nav = NAV_CH;
   syncNav();
 }
@@ -1091,43 +1081,39 @@ void rightGlyph(byte row, char c, bool inverted) {
   display.setTextColor(WHITE);
 }
 
+void rightCursor(byte c) {
+  if (c < MAX_CHANNELS) rightGlyph(0, '1' + c, true);
+  else
+    for (byte i = 0; i < 3; i++) rightGlyph(i, i ? 'L' : 'A', true);
+}
+
 void drawRightColumn() {
   if (showOverlay || systMode) return;
-  if (muteMode || rndmMode || condMode) {
-    rightGlyph(0, '1' + (muteMode ? muteCursor : rndmMode ? rndmCursor : selected_menu), true);
+  if (muteMode || rndmMode || condMode || rstMode) {
+    rightCursor(muteMode ? muteCursor : rndmMode ? rndmCursor : rstMode ? rstCursor : selected_menu);
     return;
   }
-  if (nav >= NAV_COND) return;
+  if (nav > NAV_OFFS) return;
   rightGlyph(0, '1' + selected_menu, nav == NAV_CH);
   rightGlyph(1, 'H', nav == NAV_HITS);
   rightGlyph(2, 'O', nav == NAV_OFFS);
 }
 
-void leftName(char c1, char c2, char c3, char c4, bool closed) {
+void leftName() {
+  bool closed = (CLOSED_ITEMS >> nav) & 1;
   if (closed) {
     display.fillRect(0, 28, 7, 37, WHITE);
     display.setTextColor(BLACK);
   }
-  verticalMenu(1, 30, c1, c2, c3, c4);
+  const char *n = navNames + nav * 4;
+  verticalMenu(1, 30, pgm_read_byte(n), pgm_read_byte(n + 1), pgm_read_byte(n + 2), pgm_read_byte(n + 3));
   display.setTextColor(WHITE);
 }
 
 void drawLeftColumn() {
   if (showOverlay || systMode) return;
-  switch (nav) {
-    case NAV_CH: drawBpmColumn(); break;
-    case NAV_HITS: leftName('H', 'I', 'T', 'S', false); break;
-    case NAV_OFFS: leftName('O', 'F', 'F', 'S', false); break;
-    case NAV_LIMI: leftName('L', 'I', 'M', 'T', false); break;
-    case NAV_RESET: leftName('R', 'S', 'E', 'T', false); break;
-    case NAV_PROB: leftName('P', 'R', 'O', 'B', false); break;
-    case NAV_COND: leftName('C', 'O', 'N', 'D', true); break;
-    case NAV_XOX: leftName('X', 'O', 'X', ' ', true); break;
-    case NAV_RNDM: leftName('R', 'N', 'D', 'M', true); break;
-    case NAV_MUTE: leftName('M', 'U', 'T', 'E', true); break;
-    case NAV_RSET: leftName('R', 'S', 'E', 'T', true); break;
-    case NAV_SYST: leftName('S', 'Y', 'S', 'T', true); break;
-  }
+  if (nav == NAV_CH) drawBpmColumn();
+  else leftName();
 }
 
 void checkAndInitializeSettings() {
@@ -1194,7 +1180,8 @@ void drawMainScreen() {
     drawXoxCursor();
     if (nav == NAV_COND) drawBarStickers(barCond, selected_menu);
     else if (nav == NAV_RNDM && !showOverlay) drawBarStickers(rndmCond, rndmMode ? rndmCursor : -1);
-    if (muteMode) {
+    if (rstMode && rstCursor < MAX_CHANNELS) display.drawCircle(graph_x[rstCursor] + 15, graph_y[rstCursor] + 15, 16, WHITE);
+    if (muteMode && muteCursor < MAX_CHANNELS) {
       if (currentConfig.mute[muteCursor]) {
         display.drawCircle(graph_x[muteCursor] + 15, graph_y[muteCursor] + 15, 11, WHITE);
       } else {
